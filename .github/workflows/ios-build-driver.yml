@@ -44,13 +44,18 @@ jobs:
           set -o pipefail
           EAS_LOCAL_BUILD_SKIP_CLEANUP=1 EAS_BUILD_DISABLE_DOCTOR=1 eas build --platform ios --profile production --local --non-interactive --verbose-logs --output Driver-iOS.ipa 2>&1 | tee eas_build_output.log
 
-      - name: Dump xcodebuild logs on failure
+      - name: Copy Xcode Logs on failure
         if: failure()
         run: |
-          find /var/folders -name "*.log" -exec cat {} + > xcodelog.txt || true
-          curl -T xcodelog.txt https://transfer.sh/driver-xcodelog.txt > url.txt || true
-          cat url.txt || true
-          cat xcodelog.txt | tail -n 1000 || true
+          mkdir -p captured_logs
+          cp volta-driver/eas_build_output.log captured_logs/ || true
+
+      - name: Upload Xcode Logs Artifact
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: driver-xcode-logs
+          path: captured_logs/
 
       - name: Submit iOS App to TestFlight
         working-directory: volta-driver
