@@ -28,6 +28,9 @@ jobs:
         with:
           xcode-version: '16.1'
 
+      - name: Download iOS Platform
+        run: xcodebuild -downloadPlatform iOS
+
       - name: Install dependencies
         working-directory: volta-driver
         run: npm install
