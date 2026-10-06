@@ -42,12 +42,18 @@ jobs:
         working-directory: volta-customer
         run: EAS_LOCAL_BUILD_SKIP_CLEANUP=1 EAS_BUILD_DISABLE_DOCTOR=1 eas build --platform ios --profile production --local --non-interactive --verbose-logs --output Customer-iOS.ipa
 
-      - name: Upload Xcode Logs on failure
+      - name: Copy Xcode Logs on failure
+        if: failure()
+        run: |
+          mkdir -p captured_logs
+          find /var/folders -name "*.log" 2>/dev/null -exec cp {} captured_logs/ \; || true
+
+      - name: Upload Xcode Logs Artifact
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: xcode-logs
-          path: /var/folders/**/*.log
+          path: captured_logs/
 
       - name: Submit iOS App to TestFlight
         working-directory: volta-customer
