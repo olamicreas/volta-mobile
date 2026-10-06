@@ -29,7 +29,10 @@ jobs:
           xcode-version: '16.1'
 
       - name: Download iOS Platform
-        run: xcodebuild -downloadPlatform iOS
+        run: |
+          for i in 1 2 3; do
+            xcodebuild -downloadPlatform iOS && break || sleep 15;
+          done
 
       - name: Force HTTPS for SPM
         run: git config --global url."https://github.com/".insteadOf "git@github.com:"
