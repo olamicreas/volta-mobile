@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     name: Build iOS Customer App
-    runs-on: macos-latest
+    runs-on: macos-14
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -25,13 +25,16 @@ jobs:
           eas-version: latest
           token: Vn6hHQ1cb4AF0iNdANOmlb5oGSMZ7zFYFy4jdaKy
 
+      - name: Select Xcode 16.1
+        run: sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer
+
       - name: Install dependencies
         working-directory: volta-customer
         run: npm install
 
       - name: Build iOS App locally on macOS Runner
         working-directory: volta-customer
-        run: eas build --platform ios --profile production --local --non-interactive --auto-submit --output Customer-iOS.ipa
+        run: EXPO_NO_DOCTOR=true eas build --platform ios --profile production --local --non-interactive --auto-submit --output Customer-iOS.ipa
 
       - name: Upload iOS Build Artifact
         uses: actions/upload-artifact@v4
