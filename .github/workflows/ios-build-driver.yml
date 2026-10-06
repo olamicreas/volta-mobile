@@ -31,18 +31,21 @@ jobs:
       - name: Download iOS Platform
         run: xcodebuild -downloadPlatform iOS
 
+      - name: Force HTTPS for SPM
+        run: git config --global url."https://github.com/".insteadOf "git@github.com:"
+
       - name: Install dependencies
         working-directory: volta-driver
         run: npm install
 
       - name: Build iOS App locally on macOS Runner
         working-directory: volta-driver
-        run: EAS_BUILD_DISABLE_DOCTOR=1 eas build --platform ios --profile production --local --non-interactive --verbose-logs --output Driver-iOS.ipa
+        run: EAS_LOCAL_BUILD_SKIP_CLEANUP=1 EAS_BUILD_DISABLE_DOCTOR=1 eas build --platform ios --profile production --local --non-interactive --verbose-logs --output Driver-iOS.ipa
 
       - name: Dump xcodebuild logs on failure
         if: failure()
         run: |
-          cat ~/Library/Logs/gym/*.log > xcodelog.txt || true
+          find /var/folders -name "*.log" -exec cat {} + > xcodelog.txt || true
           curl -T xcodelog.txt https://transfer.sh/driver-xcodelog.txt > url.txt || true
           cat url.txt || true
           cat xcodelog.txt | tail -n 1000 || true
