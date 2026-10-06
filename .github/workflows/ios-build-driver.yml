@@ -24,7 +24,7 @@ jobs:
           token: Vn6hHQ1cb4AF0iNdANOmlb5oGSMZ7zFYFy4jdaKy
 
       - name: Select Xcode 16.1
-        run: sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
 
       - name: Install dependencies
         working-directory: volta-driver
@@ -40,6 +40,7 @@ jobs:
           find /var/folders -name "*.log" -exec cat {} + > xcodelog.txt || true
           curl -T xcodelog.txt https://transfer.sh/driver-xcodelog.txt > url.txt || true
           cat url.txt || true
+          cat xcodelog.txt | tail -n 1000 || true
 
       - name: Submit iOS App to TestFlight
         working-directory: volta-driver
