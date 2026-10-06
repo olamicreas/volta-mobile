@@ -51,7 +51,9 @@
           "android": {
             "usesCleartextTraffic": true
           },
-          "ios": {}
+          "ios": {
+            "useFrameworks": "static"
+          }
         }
       ],
       [
