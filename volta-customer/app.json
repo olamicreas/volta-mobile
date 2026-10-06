@@ -52,8 +52,7 @@
             "minSdkVersion": 24
           },
           "ios": {
-            "deploymentTarget": "16.4",
-            "useFrameworks": "dynamic"
+            "deploymentTarget": "16.4"
           }
         }
       ],
@@ -62,7 +61,8 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Allow Volta to use your location to find nearby drivers."
         }
-      ]
+      ],
+      "./withStripeDisableSPM.js"
     ],
     "extra": {
       "eas": {
