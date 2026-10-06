@@ -1,0 +1,22 @@
+name: Fetch Logs
+on: [push]
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Fetch logs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run view 37461747064 --log > driver-log.txt || true
+          gh run view 37461746985 --log > customer-log.txt || true
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git checkout -b debug-logs-${{ github.run_id }}
+          git add *-log.txt
+          git commit -m "Add logs"
+          git push origin debug-logs-${{ github.run_id }}
