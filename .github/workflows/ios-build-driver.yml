@@ -31,10 +31,10 @@ jobs:
 
       - name: Build iOS App locally on macOS Runner
         working-directory: volta-driver
-        run: eas build --platform ios --profile preview --local --non-interactive --output Driver-iOS.tar.gz
+        run: eas build --platform ios --profile production --local --non-interactive --auto-submit --output Driver-iOS.ipa
 
       - name: Upload iOS Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Driver-iOS-Build
-          path: volta-driver/Driver-iOS.tar.gz
+          path: volta-driver/Driver-iOS.ipa

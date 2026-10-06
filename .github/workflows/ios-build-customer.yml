@@ -31,10 +31,10 @@ jobs:
 
       - name: Build iOS App locally on macOS Runner
         working-directory: volta-customer
-        run: eas build --platform ios --profile preview --local --non-interactive --output Customer-iOS.tar.gz
+        run: eas build --platform ios --profile production --local --non-interactive --auto-submit --output Customer-iOS.ipa
 
       - name: Upload iOS Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Customer-iOS-Build
-          path: volta-customer/Customer-iOS.tar.gz
+          path: volta-customer/Customer-iOS.ipa
