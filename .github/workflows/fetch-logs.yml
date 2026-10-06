@@ -12,8 +12,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh run view 37461747064 --log > driver-log.txt || true
-          gh run view 37461746985 --log > customer-log.txt || true
+          gh run view --repo olamicreas/volta-mobile $(gh run list --repo olamicreas/volta-mobile --workflow "Build iOS Driver App" --limit 1 --json databaseId -q '.[0].databaseId') --log > driver-log.txt || true
+          gh run view --repo olamicreas/volta-mobile $(gh run list --repo olamicreas/volta-mobile --workflow "Build iOS Customer App" --limit 1 --json databaseId -q '.[0].databaseId') --log > customer-log.txt || true
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
           git checkout -b debug-logs-${{ github.run_id }}
