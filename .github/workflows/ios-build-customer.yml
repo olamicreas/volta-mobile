@@ -52,6 +52,8 @@ jobs:
         run: |
           mkdir -p captured_logs
           cp volta-customer/eas_build_output.log captured_logs/ || true
+          cp volta-driver/eas_build_output.log captured_logs/ || true
+          find /var/folders -name "*.log" 2>/dev/null -exec cp {} captured_logs/ \; || true
 
       - name: Upload Xcode Logs Artifact
         if: failure()
