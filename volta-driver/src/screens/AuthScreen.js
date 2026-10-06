@@ -187,6 +187,9 @@ export default function AuthScreen({ onLogin }) {
               <ArrowLeft color="#fff" size={24} />
             </TouchableOpacity>
           )}
+          <View style={{ alignItems: 'center', marginTop: step === 'CHOICE' ? 16 : 0, marginBottom: 12 }}>
+             <Image source={require('../../assets/icon.png')} style={{ width: 80, height: 80, borderRadius: 20 }} resizeMode="contain" />
+          </View>
           <Text style={styles.titleLeft}>{step === 'CHOICE' ? 'Welcome to Volta' : step === 'OWNERSHIP' ? 'Vehicle Setup' : step === 'VEHICLE' ? 'Final Details' : isApplying ? 'Apply to Drive' : 'Driver Login'}</Text>
           <Text style={styles.subLeft}>{step === 'CHOICE' ? 'Become a driver or login' : step === 'OWNERSHIP' ? 'How will you drive with us?' : step === 'VEHICLE' ? 'Upload required documents' : isApplying ? 'Join the Volta network.' : 'Enter your phone number to go online.'}</Text>
           

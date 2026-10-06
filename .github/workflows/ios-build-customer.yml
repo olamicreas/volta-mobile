@@ -1,6 +1,8 @@
 name: iOS Build Customer
 
 on:
+  push:
+    branches: [main, master]
   workflow_dispatch:
 
 jobs:
@@ -21,7 +23,7 @@ jobs:
         with:
           expo-version: latest
           eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+          token: Vn6hHQ1cb4AF0iNdANOmlb5oGSMZ7zFYFy4jdaKy
 
       - name: Install dependencies
         working-directory: volta-customer
