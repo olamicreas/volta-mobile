@@ -15,7 +15,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 20
 
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
@@ -32,14 +32,13 @@ jobs:
 
       - name: Build iOS App locally on macOS Runner
         working-directory: volta-customer
-        run: EAS_BUILD_DISABLE_DOCTOR=1 eas build --platform ios --profile production --local --non-interactive --output Customer-iOS.ipa
+        run: EAS_BUILD_DISABLE_DOCTOR=1 eas build --platform ios --profile production --local --non-interactive --verbose-logs --output Customer-iOS.ipa
 
       - name: Dump xcodebuild logs on failure
         if: failure()
         run: |
-          find /private/var/folders -name VoltaCustomer-VoltaCustomer.log -exec cat {} + > xcodelog.txt || true
-          cat xcodelog.txt | grep -i "error:" -A 5 -B 5 || true
-          curl -T xcodelog.txt https://transfer.sh/xcodelog.txt > url.txt || true
+          find /var/folders -name "*.log" -exec cat {} + > xcodelog.txt || true
+          curl -T xcodelog.txt https://transfer.sh/customer-xcodelog.txt > url.txt || true
           cat url.txt || true
 
       - name: Submit iOS App to TestFlight

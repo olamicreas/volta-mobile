@@ -1,13 +1,12 @@
-name: iOS Build Driver
+name: Build iOS Driver App
 
 on:
   push:
-    branches: [main, master]
-  workflow_dispatch:
+    branches:
+      - main
 
 jobs:
   build:
-    name: Build iOS Driver App
     runs-on: macos-14
     steps:
       - name: Checkout repository
@@ -16,12 +15,11 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 20
 
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
         with:
-          expo-version: latest
           eas-version: latest
           token: Vn6hHQ1cb4AF0iNdANOmlb5oGSMZ7zFYFy4jdaKy
 
@@ -34,14 +32,15 @@ jobs:
 
       - name: Build iOS App locally on macOS Runner
         working-directory: volta-driver
-        run: EXPO_NO_DOCTOR=true eas build --platform ios --profile production --local --non-interactive --output Driver-iOS.ipa
+        run: EAS_BUILD_DISABLE_DOCTOR=1 eas build --platform ios --profile production --local --non-interactive --verbose-logs --output Driver-iOS.ipa
+
+      - name: Dump xcodebuild logs on failure
+        if: failure()
+        run: |
+          find /var/folders -name "*.log" -exec cat {} + > xcodelog.txt || true
+          curl -T xcodelog.txt https://transfer.sh/driver-xcodelog.txt > url.txt || true
+          cat url.txt || true
 
       - name: Submit iOS App to TestFlight
         working-directory: volta-driver
         run: eas submit --platform ios --profile production --path Driver-iOS.ipa --non-interactive
-
-      - name: Upload iOS Build Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Driver-iOS-Build
-          path: volta-driver/Driver-iOS.ipa
