@@ -1,0 +1,9 @@
+
+# Backend
+volta-backend-fastapi/
+volta-backend/
+__pycache__/
+*.pyc
+*.pyo
+venv/
+env/

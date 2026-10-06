@@ -1,0 +1,75 @@
+{
+  "expo": {
+    "name": "Volta Driver",
+    "slug": "volta-driver",
+    "version": "1.0.2",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.volta.driver",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification",
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        },
+        "NSCameraUsageDescription": "Allow Volta Driver to use your camera to scan your documents.",
+        "NSPhotoLibraryUsageDescription": "Allow Volta Driver to access your photo library to upload your documents.",
+        "NSLocationWhenInUseUsageDescription": "Allow Volta Driver to use your location to track your route.",
+        "NSLocationAlwaysUsageDescription": "Allow Volta Driver to use your location to track your route in the background."
+      },
+      "buildNumber": "50"
+    },
+    "android": {
+      "package": "com.volta.driver",
+      "config": {
+        "googleMaps": {
+          "apiKey": "DUMMY_KEY_TO_PREVENT_CRASH"
+        }
+      },
+      "versionCode": 4
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#05A357"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Volta Driver to use your location to track your route."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Volta Driver to access your photos."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "da9e51f8-e95c-4f6f-8739-f06ac2abb39c"
+      }
+    }
+  }
+}

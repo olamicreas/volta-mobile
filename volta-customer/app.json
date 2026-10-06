@@ -1,0 +1,72 @@
+{
+  "expo": {
+    "name": "Volta",
+    "slug": "volta-customer",
+    "version": "1.0.2",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.volta.customer",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification",
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        },
+        "NSCameraUsageDescription": "Allow Volta to use your camera to scan your credit card for faster checkout.",
+        "NSLocationWhenInUseUsageDescription": "Allow Volta to use your location to find nearby drivers.",
+        "NSLocationAlwaysUsageDescription": "Allow Volta to use your location to find nearby drivers."
+      },
+      "buildNumber": "50"
+    },
+    "android": {
+      "package": "com.volta.customer",
+      "config": {
+        "googleMaps": {
+          "apiKey": "DUMMY_KEY_TO_PREVENT_CRASH"
+        }
+      },
+      "versionCode": 4
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#05A357"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true,
+            "minSdkVersion": 24
+          },
+          "ios": {
+            "deploymentTarget": "16.4"
+          }
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Volta to use your location to find nearby drivers."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "326de05a-0a24-4834-a2d3-0c430c9dc1e8"
+      }
+    }
+  }
+}
