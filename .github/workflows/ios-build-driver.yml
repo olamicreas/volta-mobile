@@ -40,7 +40,9 @@ jobs:
 
       - name: Build iOS App locally on macOS Runner
         working-directory: volta-driver
-        run: EAS_LOCAL_BUILD_SKIP_CLEANUP=1 EAS_BUILD_DISABLE_DOCTOR=1 eas build --platform ios --profile production --local --non-interactive --verbose-logs --output Driver-iOS.ipa 2>&1 | tee eas_build_output.log
+        run: |
+          set -o pipefail
+          EAS_LOCAL_BUILD_SKIP_CLEANUP=1 EAS_BUILD_DISABLE_DOCTOR=1 eas build --platform ios --profile production --local --non-interactive --verbose-logs --output Driver-iOS.ipa 2>&1 | tee eas_build_output.log
 
       - name: Dump xcodebuild logs on failure
         if: failure()
