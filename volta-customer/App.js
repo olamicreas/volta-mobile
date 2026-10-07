@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, StyleSheet, Platform, TouchableOpacity, Text,
-  Dimensions, Image, StatusBar, ScrollView, Alert, ActivityIndicator, DeviceEventEmitter
+  Dimensions, Image, StatusBar, ScrollView, Alert, ActivityIndicator, DeviceEventEmitter, Keyboard
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Home, Clock, CreditCard, User, X, MapPin, Star } from 'lucide-react-native';
@@ -78,7 +78,6 @@ function MainApp({ navigation }) {
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
 
   useEffect(() => {
-    const { Keyboard } = require('react-native');
     const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
     const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
     return () => { showSub.remove(); hideSub.remove(); };
@@ -164,7 +163,7 @@ function MainApp({ navigation }) {
 
   useEffect(() => {
     
-    const sub = DeviceEventEmitter.addListener('DO_LOGOUT', async () => {
+    const sub = DeviceEventEmitter, Keyboard.addListener('DO_LOGOUT', async () => {
       
       
       await AsyncStorage.removeItem('userToken');
@@ -173,7 +172,7 @@ function MainApp({ navigation }) {
       setView('AUTH');
       navigation.navigate('Main');
     });
-    return () => { if (sub && sub.remove) sub.remove(); else DeviceEventEmitter.removeAllListeners('DO_LOGOUT'); };
+    return () => { if (sub && sub.remove) sub.remove(); else DeviceEventEmitter, Keyboard.removeAllListeners('DO_LOGOUT'); };
   }, [navigation]);
 
   // ── Route drawing ───────────────────────────────────

@@ -114,7 +114,7 @@ export default function AuthScreen({ onLogin }) {
             const prof = await api.getProfile();
             if (!prof.first_name || isApplying) {
                 if (!prof.first_name && !isApplying) {
-                    require('react-native').Alert.alert("Account Not Found", "This phone number isn't registered. Let's get you set up to drive!");
+                    Alert.alert("Account Not Found", "This phone number isn't registered. Let's get you set up to drive!");
                 }
                 setStep('PROFILE');
                 return;
