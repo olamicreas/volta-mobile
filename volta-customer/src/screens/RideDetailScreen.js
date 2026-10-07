@@ -6,7 +6,7 @@ import C from '../constants/colors';
 
 export default function RideDetailScreen({ route, navigation }) {
   const insets = useSafeAreaInsets();
-  const { ride } = route.params;
+  const ride = route?.params?.ride || {};
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -29,14 +29,14 @@ export default function RideDetailScreen({ route, navigation }) {
             <MapPin size={20} color={C.lux900} style={styles.icon} />
             <View>
               <Text style={styles.label}>Drop-off</Text>
-              <Text style={styles.value}>{ride.dest}</Text>
+              <Text style={styles.value}>{ride.dest_name || 'N/A'}</Text>
             </View>
           </View>
           <View style={styles.row}>
             <Navigation size={20} color={C.lux900} style={styles.icon} />
             <View>
               <Text style={styles.label}>Date & Time</Text>
-              <Text style={styles.value}>{ride.date}</Text>
+              <Text style={styles.value}>{ride.created_at ? new Date(ride.created_at).toLocaleString() : 'N/A'}</Text>
             </View>
           </View>
         </View>
@@ -46,9 +46,9 @@ export default function RideDetailScreen({ route, navigation }) {
           <View style={[styles.row, { justifyContent: 'space-between' }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Receipt size={20} color={C.lux900} style={styles.icon} />
-              <Text style={styles.value}>Total ({ride.vehicle})</Text>
+              <Text style={styles.value}>Total ({ride.vehicle_type || 'Unknown'})</Text>
             </View>
-            <Text style={[styles.value, { fontWeight: '800' }]}>{ride.price}</Text>
+            <Text style={[styles.value, { fontWeight: '800' }]}>{(ride.fare_amount ?? 0).toLocaleString()} GNF</Text>
           </View>
         </View>
 

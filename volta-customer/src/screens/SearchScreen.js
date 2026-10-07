@@ -14,7 +14,11 @@ export default function SearchScreen({ onClose, onSelectDestination, onPickupCha
   const [dropoff, setDropoff] = React.useState('');
   const [suggestions, setSuggestions] = React.useState([]);
   const searchTimeout = React.useRef(null);
-  const [focusedField, setFocusedField] = React.useState('dropoff');
+  useEffect(() => {
+    return () => {
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    };
+  }, []);
 
   const handleSearch = (text, field) => {
     if (field === 'pickup') setPickup(text);

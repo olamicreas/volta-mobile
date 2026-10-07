@@ -27,7 +27,7 @@ export default function RideHistoryScreen({ navigation, trips = [] }) {
                 <Text style={styles.destText}>{r.dest_name}</Text>
                 <Text style={styles.dateText}>{new Date(r.created_at).toLocaleString()}</Text>
               </View>
-              <Text style={styles.priceText}>{`${r.fare_amount.toLocaleString()} GNF`}</Text>
+              <Text style={styles.priceText}>{`${(r.fare_amount ?? 0).toLocaleString()} GNF`}</Text>
             </View>
             <View style={styles.rideCardBottom}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>

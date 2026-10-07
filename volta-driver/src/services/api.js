@@ -35,16 +35,13 @@ class ApiService {
     const formData = new FormData();
     
     if (photoUri) {
-      const photoBlob = await (await fetch(photoUri)).blob();
-      formData.append('profile_photo', photoBlob, 'profile.jpg');
+      formData.append('profile_photo', { uri: photoUri, name: 'profile.jpg', type: 'image/jpeg' });
     }
     if (licenseUri) {
-      const licenseBlob = await (await fetch(licenseUri)).blob();
-      formData.append('driver_license', licenseBlob, 'license.jpg');
+      formData.append('driver_license', { uri: licenseUri, name: 'license.jpg', type: 'image/jpeg' });
     }
     if (carteGrisUri) {
-      const carteGrisBlob = await (await fetch(carteGrisUri)).blob();
-      formData.append('carte_grise', carteGrisBlob, 'carte_grise.jpg');
+      formData.append('carte_grise', { uri: carteGrisUri, name: 'carte_grise.jpg', type: 'image/jpeg' });
     }
 
     const res = await fetch(`${HTTP_URL}/api/v1/users/me/documents`, {

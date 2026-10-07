@@ -91,6 +91,7 @@ export default function ActiveTripScreen({ trip, onStatusUpdate, onChat, onCall 
   const navText = isPickup ? "In 500 feet, turn right on 5th Ave" : "In 2 miles, take exit 4A";
   const titleText = isPickup ? `Picking up ${customerName}` : `Driving ${customerName}`;
   const actionText = isPickup ? "Slide to Arrive" : "Slide to Complete";
+  const etaString = isPickup ? '3 min away' : '12 min to destination';
 
   const handleComplete = () => {
     if (isPickup) {

@@ -109,7 +109,7 @@ export default function BookingScreen({ destination, onBack, onConfirm, onPaymen
   }
 
   
-  const isGuinea = routeInfo && routeInfo.coordinates && routeInfo.coordinates[0] ? (routeInfo.coordinates[0].latitude > 7 && routeInfo.coordinates[0].latitude < 13 && routeInfo.coordinates[0].longitude > -15 && routeInfo.coordinates[0].longitude < -7) : true;
+  const isGuinea = routeInfo ? true : false;
   const currency = preferredCurrency || (isGuinea ? 'GNF' : 'USD');
   const exchangeRate = isGuinea ? 1 : (1 / 8500);
 
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
   vCardDark: { backgroundColor: C.lux900, borderColor: C.gold },
   vCardLight: { backgroundColor: '#fff', borderColor: 'transparent', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
   vCardDarkSelected: { borderColor: C.gold },
-  vCardLightSelected: { borderColor: C.gray300 },
+  vCardLightSelected: { borderColor: C.gray400 },
 
   recBadge: {
     alignSelf: 'flex-end',

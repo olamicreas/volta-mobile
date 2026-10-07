@@ -110,20 +110,24 @@ function MainApp({ navigation }) {
   // ── Location ────────────────────────────────────────
   useEffect(() => {
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
-      setLocation(coords);
-      
       try {
-        const addr = await Location.reverseGeocodeAsync(coords);
-        if (addr && addr.length > 0) {
-            const street = addr[0].street || addr[0].name || addr[0].city || 'Current Location';
-            setCurrentAddress(street);
-            setPickup(street);
-        }
-      } catch(e) {}
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') return;
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+        setLocation(coords);
+        
+        try {
+          const addr = await Location.reverseGeocodeAsync(coords);
+          if (addr && addr.length > 0) {
+              const street = addr[0].street || addr[0].name || addr[0].city || 'Current Location';
+              setCurrentAddress(street);
+              setPickup(street);
+          }
+        } catch(e) {}
+      } catch(error) {
+        console.warn('Location initialization failed:', error);
+      }
     })();
   }, []);
 

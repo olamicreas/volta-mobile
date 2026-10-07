@@ -51,7 +51,7 @@ export default function DashboardScreen({ isOnline, toggleOnline, onMenuPress, o
 
         <View style={styles.earningsCenter}>
           <Text style={styles.earningsLabel}>Today's Earnings</Text>
-          <Text style={styles.earningsAmount}>{wallet ? wallet.balance.toLocaleString() : '0'} GNF</Text>
+          <Text style={styles.earningsAmount}>{(wallet?.balance ?? 0).toLocaleString()} GNF</Text>
         </View>
 
         <TouchableOpacity style={styles.avatarWrap}>

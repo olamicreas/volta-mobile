@@ -13,6 +13,10 @@ export default {
   purple: '#A78BFA',
   yellow: '#FACC15',
   yellowStar: '#EAB308',
+  gold: '#05A357',       // Alias for brand (used by ProfileScreen)
+  lux900: '#FFFFFF',     // Light text color for driver dark theme
+  gray100: '#F3F4F6',
+  gray200: '#E5E7EB',
   gray300: '#D1D5DB',
   gray400: '#9CA3AF',
   gray600: '#4B5563',
