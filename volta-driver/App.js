@@ -100,8 +100,7 @@ function MainApp({ navigation }) {
         }
       );
     })();
-    if (isInitializing) return <View style={{flex:1, backgroundColor:'#121212', justifyContent:'center', alignItems:'center'}}><ActivityIndicator size="large" color="#05A357" /></View>;
-  return () => { if (locSub.current) locSub.current.remove(); };
+    return () => { if (locSub.current) locSub.current.remove(); };
   }, []);
 
   // ── Socket ──────────────────────────────────────────
@@ -134,6 +133,20 @@ function MainApp({ navigation }) {
       socket.off('trip_cleared');
     };
   }, []);
+
+  useEffect(() => {
+    const { DeviceEventEmitter } = require('react-native');
+    const sub = DeviceEventEmitter.addListener('DO_LOGOUT', async () => {
+      const storage = require('@react-native-async-storage/async-storage');
+      const asyncStorage = storage.default || storage;
+      await asyncStorage.removeItem('userToken');
+      setProfile(null);
+      socket.disconnect();
+      setView('AUTH');
+      navigation.navigate('Main');
+    });
+    return () => sub.remove();
+  }, [navigation]);
 
   // ── Handlers ────────────────────────────────────────
   const toggleOnline = () => {
@@ -172,6 +185,7 @@ function MainApp({ navigation }) {
   const isDash = ['OFFLINE', 'ONLINE', 'REQUEST'].includes(view);
   const isOnline = view === 'ONLINE' || view === 'REQUEST';
   const isActiveTrip = view === 'EN_ROUTE_PICKUP' || view === 'EN_ROUTE_DROPOFF';
+  if (isInitializing) return <View style={{flex:1, backgroundColor:'#121212', justifyContent:'center', alignItems:'center'}}><ActivityIndicator size="large" color="#05A357" /></View>;
 
   return (
     <View style={styles.root}>
@@ -224,10 +238,10 @@ function MainApp({ navigation }) {
                     <DashboardScreen profile={profile} wallet={wallet}
             isOnline={isOnline}
             toggleOnline={toggleOnline}
-            onMenuPress={() => navigation.navigate('Account', { onLogout: async () => { await require('@react-native-async-storage/async-storage').default.removeItem('userToken'); setProfile(null); socket.disconnect(); setView('AUTH'); navigation.navigate('Main'); }})}
+            onMenuPress={() => navigation.navigate('Account')}
             onSafetyPress={() => navigation.navigate('Safety')}
             onSettingsPress={() => navigation.navigate('Preferences')}
-            onLogoutPress={async () => { await require('@react-native-async-storage/async-storage').default.removeItem('userToken'); setProfile(null); socket.disconnect(); setView('AUTH'); }}
+            onLogoutPress={() => require('react-native').DeviceEventEmitter.emit('DO_LOGOUT')}
             onPromoPress={() => navigation.navigate('Promo')}
             onProfilePress={() => navigation.navigate('ProfileDetail')}
           />

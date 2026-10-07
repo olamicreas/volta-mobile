@@ -22,7 +22,10 @@ class ApiService {
       headers: await this.getHeaders(),
       body: JSON.stringify(data)
     });
-    if (!res.ok) throw new Error('Failed to update profile');
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Profile update failed: ${res.status} ${errText}`);
+    }
     return res.json();
   }
 
@@ -32,13 +35,16 @@ class ApiService {
     const formData = new FormData();
     
     if (photoUri) {
-      formData.append('profile_photo', { uri: photoUri, name: 'profile.jpg', type: 'image/jpeg' });
+      const photoBlob = await (await fetch(photoUri)).blob();
+      formData.append('profile_photo', photoBlob, 'profile.jpg');
     }
     if (licenseUri) {
-      formData.append('driver_license', { uri: licenseUri, name: 'license.jpg', type: 'image/jpeg' });
+      const licenseBlob = await (await fetch(licenseUri)).blob();
+      formData.append('driver_license', licenseBlob, 'license.jpg');
     }
     if (carteGrisUri) {
-      formData.append('carte_grise', { uri: carteGrisUri, name: 'carte_grise.jpg', type: 'image/jpeg' });
+      const carteGrisBlob = await (await fetch(carteGrisUri)).blob();
+      formData.append('carte_grise', carteGrisBlob, 'carte_grise.jpg');
     }
 
     const res = await fetch(`${HTTP_URL}/api/v1/users/me/documents`, {
@@ -49,7 +55,10 @@ class ApiService {
       body: formData
     });
     
-    if (!res.ok) throw new Error('Failed to upload documents');
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Upload failed: ${res.status} ${errText}`);
+    }
     return res.json();
   }
 

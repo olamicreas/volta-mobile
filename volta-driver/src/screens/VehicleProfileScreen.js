@@ -1,11 +1,20 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
-import { ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { ArrowLeft, CheckCircle2, AlertCircle, Clock } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import C from '../constants/colors';
+import api from '../services/api';
 
 export default function VehicleProfileScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    api.getProfile().then(setProfile).catch(() => {});
+  }, []);
+
+  const isCompany = profile?.vehicle_type === 'COMPANY_PROVIDED';
+  const displayMake = isCompany ? 'Company Vehicle' : (profile?.vehicle_type || 'Vehicle Make');
+  const displayPlate = isCompany ? 'PENDING ASSIGNMENT' : (profile?.license_plate || 'PENDING');
   
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -22,10 +31,10 @@ export default function VehicleProfileScreen({ navigation }) {
           <View style={styles.imagePlaceholder}>
             <Text style={{color: '#fff', fontSize: 40}}>🚗</Text>
           </View>
-          <Text style={styles.carMake}>Toyota Prius 2018</Text>
-          <Text style={styles.carPlate}>RC-1234-A</Text>
+          <Text style={styles.carMake}>{displayMake}</Text>
+          <Text style={styles.carPlate}>{displayPlate}</Text>
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>Volta Economy & Premium</Text>
+            <Text style={styles.badgeText}>Volta Standard</Text>
           </View>
         </View>
 
@@ -35,7 +44,7 @@ export default function VehicleProfileScreen({ navigation }) {
           <TouchableOpacity style={styles.docRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.docTitle}>Driver's License</Text>
-              <Text style={styles.docSub}>Expires: Sep 2028</Text>
+              <Text style={styles.docSub}>Uploaded</Text>
             </View>
             <CheckCircle2 size={24} color="#05A357" />
           </TouchableOpacity>
@@ -44,18 +53,18 @@ export default function VehicleProfileScreen({ navigation }) {
           <TouchableOpacity style={styles.docRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.docTitle}>Vehicle Registration (Carte Grise)</Text>
-              <Text style={styles.docSub}>Expires: Jan 2027</Text>
+              <Text style={styles.docSub}>{isCompany ? 'Not Required' : 'Uploaded'}</Text>
             </View>
-            <CheckCircle2 size={24} color="#05A357" />
+            {isCompany ? <CheckCircle2 size={24} color="#A1A1AA" /> : <CheckCircle2 size={24} color="#05A357" />}
           </TouchableOpacity>
           <View style={styles.divider} />
           
           <TouchableOpacity style={styles.docRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.docTitle}>Vehicle Insurance</Text>
-              <Text style={[styles.docSub, { color: '#EF4444' }]}>Expires in 14 days</Text>
+              <Text style={styles.docSub}>{isCompany ? 'Not Required' : 'Uploaded'}</Text>
             </View>
-            <AlertCircle size={24} color="#EF4444" />
+            {isCompany ? <CheckCircle2 size={24} color="#A1A1AA" /> : <CheckCircle2 size={24} color="#05A357" />}
           </TouchableOpacity>
         </View>
       </ScrollView>

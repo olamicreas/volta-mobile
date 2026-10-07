@@ -6,7 +6,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import C from '../constants/colors';
 
 export default function AccountScreen({ navigation, route }) {
-  const onLogout = route?.params?.onLogout || (() => {});
+  const onLogout = () => {
+    require('react-native').DeviceEventEmitter.emit('DO_LOGOUT');
+  };
+  
   const [prof, setProf] = useState(null);
   useEffect(() => {
     api.getProfile().then(setProf).catch(()=>console.log('err'));

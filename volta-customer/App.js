@@ -161,6 +161,20 @@ function MainApp({ navigation }) {
     return () => { socket.off('trip_accepted'); socket.off('trip_finished_receipt'); socket.off('dispatch_failed'); };
   }, []);
 
+  useEffect(() => {
+    const { DeviceEventEmitter } = require('react-native');
+    const sub = DeviceEventEmitter.addListener('DO_LOGOUT', async () => {
+      const storage = require('@react-native-async-storage/async-storage');
+      const asyncStorage = storage.default || storage;
+      await asyncStorage.removeItem('userToken');
+      setProfile(null);
+      socket.disconnect();
+      setView('AUTH');
+      navigation.navigate('Main');
+    });
+    return () => sub.remove();
+  }, [navigation]);
+
   // ── Route drawing ───────────────────────────────────
   const drawRoute = (name, lat, lng) => {
     setDestName(name); setDestLat(lat); setDestLng(lng);
@@ -314,7 +328,7 @@ function MainApp({ navigation }) {
 
         {view === 'ACCOUNT' && (
           <View style={[StyleSheet.absoluteFill, { backgroundColor: '#F5F7FA', zIndex: 50, paddingBottom: 80 }]} pointerEvents="auto">
-            <AccountScreen profile={profile} navigation={{...navigation, goBack: () => setView('HOME')}} route={{params: {onLogout: async () => { await require('@react-native-async-storage/async-storage').default.removeItem('userToken'); setProfile(null); socket.disconnect(); setView('AUTH'); }}}} />
+            <AccountScreen profile={profile} navigation={{...navigation, goBack: () => setView('HOME')}} />
           </View>
         )}
 

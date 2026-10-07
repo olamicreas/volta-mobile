@@ -165,7 +165,7 @@ export default function AuthScreen({ onLogin }) {
           onLogin(await AsyncStorage.getItem('userToken'));
         });
     } catch(e) {
-        setError('Failed to upload documents');
+        setError(e.message || 'Failed to upload documents');
     } finally {
         setLoading(false);
     }
