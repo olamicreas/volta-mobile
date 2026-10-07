@@ -9,7 +9,6 @@ const withStripeDisableSPM = (config) => {
       const file = path.join(config.modRequest.platformProjectRoot, 'Podfile');
       let contents = fs.readFileSync(file, 'utf-8');
 
-      // Add $StripeDisableSPM = true to the very top of the Podfile
       if (!contents.includes('$StripeDisableSPM = true')) {
         contents = "$StripeDisableSPM = true\n" + contents;
       }
@@ -18,6 +17,7 @@ const withStripeDisableSPM = (config) => {
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
         config.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'minimal'
+        config.build_settings['SWIFT_VERSION'] = '5'
       end
     end
 `;

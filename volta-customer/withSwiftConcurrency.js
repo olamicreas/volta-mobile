@@ -8,6 +8,7 @@ const withSwiftConcurrency = (config) => {
     for (const key in buildConfigurations) {
       if (buildConfigurations[key].buildSettings) {
         buildConfigurations[key].buildSettings['SWIFT_STRICT_CONCURRENCY'] = '"minimal"';
+        buildConfigurations[key].buildSettings['SWIFT_VERSION'] = '"5"';
       }
     }
     return config;
