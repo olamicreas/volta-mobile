@@ -15,15 +15,15 @@ const withStripeDisableSPM = (config) => {
       }
       
       const snippet = `
-  installer.pods_project.targets.each do |target|
-    target.build_configurations.each do |config|
-      config.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'minimal'
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'minimal'
+      end
     end
-  end
 `;
       if (!contents.includes('SWIFT_STRICT_CONCURRENCY')) {
           contents = contents.replace(
-              /(post_install do \|installer\|[\s\S]*?)(^end$)/m,
+              /(post_install do \|installer\|[\s\S]*?)(\n[ \t]*end)/,
               `$1${snippet}$2`
           );
       }
