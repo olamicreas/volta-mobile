@@ -163,7 +163,7 @@ function MainApp({ navigation }) {
 
   useEffect(() => {
     
-    const sub = DeviceEventEmitter, Keyboard.addListener('DO_LOGOUT', async () => {
+    const sub = DeviceEventEmitter.addListener('DO_LOGOUT', async () => {
       
       
       await AsyncStorage.removeItem('userToken');
@@ -172,7 +172,7 @@ function MainApp({ navigation }) {
       setView('AUTH');
       navigation.navigate('Main');
     });
-    return () => { if (sub && sub.remove) sub.remove(); else DeviceEventEmitter, Keyboard.removeAllListeners('DO_LOGOUT'); };
+    return () => { if (sub && sub.remove) sub.remove(); else DeviceEventEmitter.removeAllListeners('DO_LOGOUT'); };
   }, [navigation]);
 
   // ── Route drawing ───────────────────────────────────
