@@ -5,7 +5,7 @@ const patchRuntimeScheduler = (filePath) => {
   if (fs.existsSync(filePath)) {
     let content = fs.readFileSync(filePath, 'utf8');
     if (!content.includes('inline void retainRuntimeScheduler')) return;
-    if (content.includes('namespace expo { class RuntimeScheduler; }')) return; // already patched
+    if (content.includes('class SWIFT_SHARED_REFERENCE')) return; // already fully patched
     
     const forwardDecls = `
 namespace expo { class RuntimeScheduler; }
@@ -14,7 +14,13 @@ inline void releaseRuntimeScheduler(expo::RuntimeScheduler *scheduler);
 
 namespace expo {
 `;
-    content = content.replace('namespace expo {', forwardDecls);
+    if (!content.includes('namespace expo { class RuntimeScheduler; }')) {
+        content = content.replace('namespace expo {', forwardDecls);
+    }
+    
+    content = content.replace('class RuntimeScheduler {', 'class SWIFT_SHARED_REFERENCE(retainRuntimeScheduler, releaseRuntimeScheduler) RuntimeScheduler {');
+    content = content.replace('} SWIFT_SHARED_REFERENCE(retainRuntimeScheduler, releaseRuntimeScheduler);', '};');
+    
     fs.writeFileSync(filePath, content);
     console.log(`Patched ${filePath}`);
   }
