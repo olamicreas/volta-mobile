@@ -41,9 +41,6 @@ jobs:
         working-directory: volta-driver
         run: npm install
 
-      - name: Patch Expo Swift Tools Version Typo
-        run: node patch-swift-tools.js
-
       - name: Build iOS App locally on macOS Runner
         working-directory: volta-driver
         run: |
