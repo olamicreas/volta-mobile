@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, StyleSheet, Platform, TouchableOpacity, Text,
-  Dimensions, Image, StatusBar, ScrollView, Alert, ActivityIndicator
+  Dimensions, Image, StatusBar, ScrollView, Alert, ActivityIndicator, DeviceEventEmitter
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Home, Clock, CreditCard, User, X, MapPin, Star } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import C from './src/constants/colors';
 import mapStyle from './src/constants/mapStyle';
@@ -89,7 +90,7 @@ function MainApp({ navigation }) {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const token = await require('@react-native-async-storage/async-storage').default.getItem('userToken');
+        const token = await AsyncStorage.getItem('userToken');
         if (token) {
           const p = await api.getProfile();
           setProfile(p);
@@ -162,17 +163,17 @@ function MainApp({ navigation }) {
   }, []);
 
   useEffect(() => {
-    const { DeviceEventEmitter } = require('react-native');
+    
     const sub = DeviceEventEmitter.addListener('DO_LOGOUT', async () => {
-      const storage = require('@react-native-async-storage/async-storage');
-      const asyncStorage = storage.default || storage;
-      await asyncStorage.removeItem('userToken');
+      
+      
+      await AsyncStorage.removeItem('userToken');
       setProfile(null);
       socket.disconnect();
       setView('AUTH');
       navigation.navigate('Main');
     });
-    return () => sub.remove();
+    return () => { if (sub && sub.remove) sub.remove(); else DeviceEventEmitter.removeAllListeners('DO_LOGOUT'); };
   }, [navigation]);
 
   // ── Route drawing ───────────────────────────────────

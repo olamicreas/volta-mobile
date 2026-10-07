@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
+import { View, Text, DeviceEventEmitter, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
 import { User, CreditCard, Settings, HelpCircle, ChevronRight, ArrowLeft, LogOut, Shield, Zap , FileText } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import C from '../constants/colors';
 
 export default function AccountScreen({ navigation, route }) {
   const onLogout = () => {
-    require('react-native').DeviceEventEmitter.emit('DO_LOGOUT');
+    DeviceEventEmitter.emit('DO_LOGOUT');
   };
   
   const [prof, setProf] = useState(null);
