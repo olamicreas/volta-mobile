@@ -68,7 +68,8 @@
           "photosPermission": "Allow Volta Driver to access your photos."
         }
       ],
-      "./withStripeDisableSPM.js"
+      "./withStripeDisableSPM.js",
+      "./withSwiftConcurrency.js"
     ],
     "extra": {
       "eas": {
