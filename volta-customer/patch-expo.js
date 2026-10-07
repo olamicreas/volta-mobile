@@ -5,24 +5,16 @@ const patchRuntimeScheduler = (filePath) => {
   if (fs.existsSync(filePath)) {
     let content = fs.readFileSync(filePath, 'utf8');
     if (!content.includes('inline void retainRuntimeScheduler')) return;
-    if (content.includes('class SWIFT_SHARED_REFERENCE')) return; // already fully patched
     
-    const forwardDecls = `
-namespace expo { class RuntimeScheduler; }
-inline void retainRuntimeScheduler(expo::RuntimeScheduler *scheduler);
-inline void releaseRuntimeScheduler(expo::RuntimeScheduler *scheduler);
-
-namespace expo {
-`;
-    if (!content.includes('namespace expo { class RuntimeScheduler; }')) {
-        content = content.replace('namespace expo {', forwardDecls);
+    // We already moved SWIFT_SHARED_REFERENCE to the front and added forward decls in the previous commit.
+    // Let's strip SWIFT_RETURNS_RETAINED from the constructors.
+    if (content.includes('SWIFT_RETURNS_RETAINED')) {
+        content = content.replace(/SWIFT_RETURNS_RETAINED /g, '');
+        fs.writeFileSync(filePath, content);
+        console.log(`Patched ${filePath} - Removed SWIFT_RETURNS_RETAINED`);
+    } else {
+        console.log(`Already patched ${filePath}`);
     }
-    
-    content = content.replace('class RuntimeScheduler {', 'class SWIFT_SHARED_REFERENCE(retainRuntimeScheduler, releaseRuntimeScheduler) RuntimeScheduler {');
-    content = content.replace('} SWIFT_SHARED_REFERENCE(retainRuntimeScheduler, releaseRuntimeScheduler);', '};');
-    
-    fs.writeFileSync(filePath, content);
-    console.log(`Patched ${filePath}`);
   }
 };
 
