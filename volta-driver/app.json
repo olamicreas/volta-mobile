@@ -23,7 +23,7 @@
         "NSLocationWhenInUseUsageDescription": "Allow Volta Driver to use your location to track your route.",
         "NSLocationAlwaysUsageDescription": "Allow Volta Driver to use your location to track your route in the background."
       },
-      "buildNumber": "61"
+      "buildNumber": "65"
     },
     "android": {
       "package": "com.volta.driver",
