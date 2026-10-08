@@ -6,6 +6,7 @@ import {
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Star, Inbox, Settings, Wallet, X } from 'lucide-react-native';
 import * as Location from 'expo-location';
+import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import C from './src/constants/colors';
@@ -67,6 +68,12 @@ function MainApp({ navigation }) {
           setProfile(p);
           socket.connect();
           setView('OFFLINE');
+          
+          // Request and send push token to backend
+          const pushToken = await requestPushPermissions();
+          if (pushToken) {
+            await api.updateProfile({ push_token: pushToken });
+          }
         }
       } catch(e) {
         console.log('Auto-login failed:', e);
@@ -75,6 +82,18 @@ function MainApp({ navigation }) {
       }
     };
     initAuth();
+  }, []);
+  
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener(response => {
+      const data = response.notification.request.content.data;
+      if (data && data.trip) {
+        console.log('Opened via Push Notification!', data.trip);
+        setTripState(data.trip);
+        setView('REQUEST');
+      }
+    });
+    return () => sub.remove();
   }, []);
 
   const mapRef = useRef(null);
@@ -100,8 +119,22 @@ function MainApp({ navigation }) {
           }
         }
       );
+      
+      // Explicit interval to guarantee Redis always gets the location every 5 seconds
+      locSub.interval = setInterval(() => {
+        setLocation(currentLoc => {
+          if (socket && viewRef.current !== 'OFFLINE' && currentLoc.latitude) {
+            socket.emit('update_location', { lat: currentLoc.latitude, lng: currentLoc.longitude });
+          }
+          return currentLoc;
+        });
+      }, 5000);
+      
     })();
-    return () => { if (locSub.current) locSub.current.remove(); };
+    return () => { 
+      if (locSub.current) locSub.current.remove(); 
+      if (locSub.interval) clearInterval(locSub.interval);
+    };
   }, []);
 
   // ── Socket ──────────────────────────────────────────

@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import Constants from 'expo-constants';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -25,11 +26,19 @@ export const requestPushPermissions = async () => {
   
   if (finalStatus !== 'granted') {
     console.log('[Push] Failed to get push token for push notification!');
-    return false;
+    return null;
   }
   
   console.log('[Push] Permissions granted!');
-  return true;
+  
+  try {
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId || '48bd79da-8bca-4ccf-a2e9-4e007d4b067f';
+    const pushTokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+    return pushTokenData.data;
+  } catch (e) {
+    console.log('[Push] Error getting token:', e);
+    return null;
+  }
 };
 
 export const sendLocalPush = (title, body) => {
