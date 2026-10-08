@@ -13,6 +13,7 @@ export default function SearchScreen({ onClose, onSelectDestination, onPickupCha
   const navigation = useNavigation();
   const [dropoff, setDropoff] = React.useState('');
   const [suggestions, setSuggestions] = React.useState([]);
+  const [focusedField, setFocusedField] = React.useState('dropoff');
   const searchTimeout = React.useRef(null);
   useEffect(() => {
     return () => {
