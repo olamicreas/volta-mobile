@@ -18,6 +18,7 @@ const withStripeDisableSPM = (config) => {
       target.build_configurations.each do |config|
         config.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'minimal'
         config.build_settings['SWIFT_VERSION'] = '5'
+        config.build_settings['DEAD_CODE_STRIPPING'] = 'NO'
       end
     end
 `;
