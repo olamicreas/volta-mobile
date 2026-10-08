@@ -23,7 +23,7 @@
         "NSLocationWhenInUseUsageDescription": "Allow Volta Driver to use your location to track your route.",
         "NSLocationAlwaysUsageDescription": "Allow Volta Driver to use your location to track your route in the background."
       },
-      "buildNumber": "58"
+      "buildNumber": "59"
     },
     "android": {
       "package": "com.volta.driver",
@@ -32,7 +32,7 @@
           "apiKey": "DUMMY_KEY_TO_PREVENT_CRASH"
         }
       },
-      "versionCode": 58
+      "versionCode": 59
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -53,8 +53,7 @@
             "minSdkVersion": 24
           },
           "ios": {
-            "deploymentTarget": "16.4",
-            "useFrameworks": "static"
+            "deploymentTarget": "16.4"
           }
         }
       ],
