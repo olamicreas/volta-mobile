@@ -111,7 +111,7 @@ export default function BookingScreen({ destination, onBack, onConfirm, onPaymen
   
   const isGuinea = routeInfo ? true : false;
   const currency = preferredCurrency || (isGuinea ? 'GNF' : 'USD');
-  const exchangeRate = isGuinea ? 1 : (1 / 8500);
+  const exchangeRate = 1 / 8500;
 
   const vehicles = VEHICLES_BASE.map(v => {
     let price = v.base + (v.perKm * 5); // default fallback price
@@ -120,7 +120,9 @@ export default function BookingScreen({ destination, onBack, onConfirm, onPaymen
       const mins = routeInfo.duration / 60;
       price = v.base + (km * v.perKm) + (mins * v.perMin);
     }
-    if (isGuinea) {
+    
+    // Always convert based on the currently active currency, not geography
+    if (currency === 'GNF') {
       price = Math.max(v.base, Math.round(price / 500) * 500);
     } else {
       price = Math.max(v.base * exchangeRate, parseFloat((price * exchangeRate).toFixed(2)));
