@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Image, Alert } fr
 import { BlurView } from 'expo-blur';
 import { MapPin, MessageSquare, Phone, Shield, Share2, ShieldAlert, XCircle } from 'lucide-react-native';
 import C from '../constants/colors';
+import { PayWithFlutterwave } from 'flutterwave-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useStripe } from '@stripe/stripe-react-native';
 
 
@@ -16,11 +18,34 @@ export default function ActiveTripScreen({ trip, onChat, onCall, routeInfo, paym
   const navigation = useNavigation();
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
+
+  const handleFlutterwaveRedirect = async (data) => {
+    if (data.status === 'successful') {
+      try {
+        const token = await AsyncStorage.getItem('userToken');
+        const verifyRes = await fetch(`${C.API_BASE_URL}/api/v1/payments/flutterwave/verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ transaction_id: data.transaction_id.toString() })
+        });
+        if (verifyRes.ok) {
+          Alert.alert('Success', 'Payment successful! The driver can now complete the trip.');
+          setPaymentRequest(null);
+        } else {
+          Alert.alert('Verification Failed', 'Could not verify Flutterwave payment with the server.');
+        }
+      } catch(e) {
+        Alert.alert('Error', 'An unexpected error occurred verifying the payment.');
+      }
+    } else {
+      Alert.alert('Payment Cancelled', 'Payment was not successful.');
+    }
+  };
+
   const handlePayment = async () => {
     if (paymentRequest?.currency === 'GNF') {
-      // Mock CinetPay URL opening for GNF
-      Alert.alert('CinetPay', 'Opening CinetPay checkout for ' + paymentRequest.amount_due + ' GNF');
-      setPaymentRequest(null);
+      // Flutterwave is handled natively by the PayWithFlutterwave component
+
     } else {
       // Stripe flow for USD
       try {
@@ -151,9 +176,29 @@ export default function ActiveTripScreen({ trip, onChat, onCall, routeInfo, paym
               <Text style={styles.amountValue}>{(paymentRequest.amount_due || 0).toLocaleString()}</Text>
             </View>
 
-            <TouchableOpacity style={styles.payBtn} onPress={handlePayment}>
-              <Text style={styles.payBtnText}>Pay Now</Text>
-            </TouchableOpacity>
+            
+            {paymentRequest?.currency === 'GNF' ? (
+              <PayWithFlutterwave
+                onRedirect={handleFlutterwaveRedirect}
+                options={{
+                  tx_ref: "volta_" + Date.now(),
+                  authorization: "FLWPUBK_TEST-7aa0e7a287b2c3a13861d7891ee645a2-X",
+                  customer: { email: 'customer@volta.com' },
+                  amount: paymentRequest?.amount_due || 25000,
+                  currency: 'GNF',
+                  payment_options: 'card,mobilemoneygn,ussd'
+                }}
+                customButton={(props) => (
+                  <TouchableOpacity style={styles.payBtn} onPress={props.onPress} disabled={props.isInitializing}>
+                    <Text style={styles.payBtnText}>Pay with Flutterwave</Text>
+                  </TouchableOpacity>
+                )}
+              />
+            ) : (
+              <TouchableOpacity style={styles.payBtn} onPress={handlePayment}>
+                <Text style={styles.payBtnText}>Pay Now (Stripe)</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       )}
