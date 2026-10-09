@@ -24,12 +24,24 @@ export default function ActiveTripScreen({ trip, onChat, onCall, routeInfo, paym
     } else {
       // Stripe flow for USD
       try {
-        // Normally fetch clientSecret from backend here
+        const token = await AsyncStorage.getItem('userToken');
+        const res = await fetch(`${C.API_BASE_URL}/api/v1/payments/stripe/create-intent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ amount: Math.ceil((paymentRequest.amount_due || 25000) / 9000) }) // Convert GNF to approx USD dollars
+        });
+        const data = await res.json();
+        
+        if (!res.ok) {
+           Alert.alert('Payment Error', data.detail || 'Could not initiate Stripe payment');
+           return;
+        }
+
         const { error } = await initPaymentSheet({
           merchantDisplayName: "Volta App",
-          paymentIntentClientSecret: "pi_test_mock_secret", // Needs real secret from backend
+          paymentIntentClientSecret: data.clientSecret,
           defaultBillingDetails: {
-            name: 'Jane Doe',
+            name: 'Customer',
           }
         });
         if (!error) {
@@ -37,14 +49,25 @@ export default function ActiveTripScreen({ trip, onChat, onCall, routeInfo, paym
           if (presentError) {
              Alert.alert('Stripe Error', `Payment failed: ${presentError.message}`);
           } else {
-             Alert.alert('Success', 'Payment successful!');
-             setPaymentRequest(null);
+             // Verify on backend
+             const verifyRes = await fetch(`${C.API_BASE_URL}/api/v1/payments/stripe/verify`, {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+               body: JSON.stringify({ intent_id: data.intentId })
+             });
+             if (verifyRes.ok) {
+               Alert.alert('Success', 'Payment successful! The driver can now complete the trip.');
+               setPaymentRequest(null);
+             } else {
+               Alert.alert('Verification Failed', 'Could not verify payment with the server.');
+             }
           }
         } else {
           Alert.alert('Stripe Error', `Initialization failed: ${error.message}`);
         }
       } catch (e) {
         console.error(e);
+        Alert.alert('Error', 'An unexpected error occurred during payment.');
       }
     }
   };
