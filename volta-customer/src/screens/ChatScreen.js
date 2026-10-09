@@ -7,7 +7,9 @@ import socket from '../services/socket';
 
 const { width, height } = Dimensions.get('window');
 
-export default function ChatScreen({ onClose, role = 'CUSTOMER', customerName = 'James Carter', driverName = 'Oumar', trip }) {
+export default function ChatScreen({ onClose, role = 'CUSTOMER', trip }) {
+  const driverName = trip?.driver?.name || 'Driver';
+  const customerName = 'Customer';
   const [msgs, setMsgs] = useState(trip?.messages || []);
   const [text, setText] = useState('');
   const insets = useSafeAreaInsets();

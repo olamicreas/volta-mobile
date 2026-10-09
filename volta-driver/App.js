@@ -207,10 +207,30 @@ function MainApp({ navigation }) {
 
   const handleStatusUpdate = (status) => {
     console.log('[Driver] handleStatusUpdate called with status:', status);
-    socket.emit('update_trip_status', status);
+    
+    if (status === 'COMPLETED') {
+      socket.emit('complete_trip', { 
+        trip_id: tripState?.trip_id || tripState?.id, 
+        customer_id: tripState?.customer_id, 
+        price: tripState?.price || 30000 
+      });
+      // Wait for backend to send 'trip_completed_success' or 'error'
+      return;
+    }
+
+    socket.emit('update_trip_status', {
+      trip_id: tripState?.trip_id || tripState?.id,
+      status: status,
+      customer_id: tripState?.customer_id
+    });
+    
     if (status === 'ARRIVED') {
       setTimeout(() => {
-        socket.emit('update_trip_status', 'IN_PROGRESS');
+        socket.emit('update_trip_status', {
+          trip_id: tripState?.trip_id || tripState?.id,
+          status: 'IN_PROGRESS',
+          customer_id: tripState?.customer_id
+        });
         setView('EN_ROUTE_DROPOFF');
         if (mapRef.current && tripState) {
           mapRef.current.fitToCoordinates(
@@ -219,10 +239,6 @@ function MainApp({ navigation }) {
           );
         }
       }, 400);
-    } else if (status === 'COMPLETED') {
-      socket.emit('complete_trip', { trip_id: tripState.trip_id, customer_id: tripState.customer_id, price: tripState.price || 30000 });
-      // Do not optimistically clear the trip state.
-      // Wait for 'trip_completed_success' or 'error' from the backend.
     }
   };
 
@@ -303,7 +319,13 @@ function MainApp({ navigation }) {
             trip={{ ...tripState, status: view === 'EN_ROUTE_PICKUP' ? 'ACCEPTED' : 'IN_PROGRESS' }}
             onStatusUpdate={handleStatusUpdate}
             onChat={() => { setChatReturnView(view); setView('CHAT'); }}
-            onCall={() => Alert.alert('Calling Customer...', 'Ringing +224 620 00 00 01')}
+            onCall={() => {
+              if (tripState?.customer?.phone) {
+                Linking.openURL(`tel:${tripState.customer.phone}`);
+              } else {
+                Alert.alert('Phone Unavailable', 'The customer has not provided a phone number.');
+              }
+            }}
           />
         )}
 
