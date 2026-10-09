@@ -25,11 +25,19 @@ export const requestPushPermissions = async () => {
   
   if (finalStatus !== 'granted') {
     console.log('[Push] Failed to get push token for push notification!');
-    return false;
+    return null;
   }
   
   console.log('[Push] Permissions granted!');
-  return true;
+  
+  try {
+    const projectId = '326de05a-0a24-4834-a2d3-0c430c9dc1e8';
+    const pushTokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+    return pushTokenData.data;
+  } catch (e) {
+    console.log('[Push] Error getting token:', e);
+    return null;
+  }
 };
 
 export const sendLocalPush = (title, body) => {

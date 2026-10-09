@@ -32,7 +32,7 @@ export const requestPushPermissions = async () => {
   console.log('[Push] Permissions granted!');
   
   try {
-    const projectId = Constants.expoConfig?.extra?.eas?.projectId || '48bd79da-8bca-4ccf-a2e9-4e007d4b067f';
+    const projectId = Constants.expoConfig?.eas?.projectId || 'da9e51f8-e95c-4f6f-8739-f06ac2abb39c';
     const pushTokenData = await Notifications.getExpoPushTokenAsync({ projectId });
     return pushTokenData.data;
   } catch (e) {

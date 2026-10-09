@@ -162,9 +162,21 @@ function MainApp({ navigation }) {
       setView(v => v !== 'AUTH' ? 'OFFLINE' : v);
     });
 
+    socket.on('trip_completed_success', (data) => {
+      setTripState(null);
+      setView('OFFLINE');
+      navigation.navigate('Earnings');
+    });
+
+    socket.on('error', (data) => {
+      Alert.alert('Action Failed', data.message || 'An error occurred.');
+    });
+
     return () => {
       socket.off('trip_requested');
       socket.off('trip_cleared');
+      socket.off('trip_completed_success');
+      socket.off('error');
     };
   }, []);
 
@@ -209,9 +221,8 @@ function MainApp({ navigation }) {
       }, 400);
     } else if (status === 'COMPLETED') {
       socket.emit('complete_trip', { trip_id: tripState.trip_id, customer_id: tripState.customer_id, price: tripState.price || 30000 });
-      setTripState(null);
-      setView('OFFLINE');
-      navigation.navigate('Earnings');
+      // Do not optimistically clear the trip state.
+      // Wait for 'trip_completed_success' or 'error' from the backend.
     }
   };
 

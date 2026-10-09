@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Image, Alert } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { MapPin, MessageSquare, Phone, Shield, Share2, ShieldAlert, XCircle } from 'lucide-react-native';
 import C from '../constants/colors';
+import { useStripe } from '@stripe/stripe-react-native';
 
 
 
@@ -11,8 +12,43 @@ const { width, height } = Dimensions.get('window');
 
 import { useNavigation } from '@react-navigation/native';
 
-export default function ActiveTripScreen({ trip, onChat, onCall, routeInfo }) {
+export default function ActiveTripScreen({ trip, onChat, onCall, routeInfo, paymentRequest, setPaymentRequest }) {
   const navigation = useNavigation();
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
+
+  const handlePayment = async () => {
+    if (paymentRequest?.currency === 'GNF') {
+      // Mock CinetPay URL opening for GNF
+      Alert.alert('CinetPay', 'Opening CinetPay checkout for ' + paymentRequest.amount_due + ' GNF');
+      setPaymentRequest(null);
+    } else {
+      // Stripe flow for USD
+      try {
+        // Normally fetch clientSecret from backend here
+        const { error } = await initPaymentSheet({
+          merchantDisplayName: "Volta App",
+          paymentIntentClientSecret: "pi_test_mock_secret", // Needs real secret from backend
+          defaultBillingDetails: {
+            name: 'Jane Doe',
+          }
+        });
+        if (!error) {
+          const { error: presentError } = await presentPaymentSheet();
+          if (presentError) {
+             Alert.alert('Stripe Error', `Payment failed: ${presentError.message}`);
+          } else {
+             Alert.alert('Success', 'Payment successful!');
+             setPaymentRequest(null);
+          }
+        } else {
+          Alert.alert('Stripe Error', `Initialization failed: ${error.message}`);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
+
   const status = trip?.status || 'ACCEPTED';
 
   const headerLabel = status === 'ARRIVED' ? 'Driver is here' : status === 'IN_PROGRESS' ? 'Heading to' : 'Arriving In';
@@ -32,8 +68,8 @@ export default function ActiveTripScreen({ trip, onChat, onCall, routeInfo }) {
           </View>
         </View>
         <View style={styles.islandRight}>
-          <Text style={styles.plateText}>LXY-992</Text>
-          <Text style={styles.vehicleTypeText}>Black S-Class</Text>
+          <Text style={styles.plateText}>{trip?.driver?.plate || 'LXY-992'}</Text>
+          <Text style={styles.vehicleTypeText}>{trip?.driver?.vehicle || 'Black S-Class'}</Text>
         </View>
       </BlurView>
 
@@ -43,14 +79,18 @@ export default function ActiveTripScreen({ trip, onChat, onCall, routeInfo }) {
           <View style={styles.driverLeft}>
             {/* Avatar with gold border + rating badge */}
             <View style={styles.avatarWrap}>
-              <View style={styles.avatar} />
+              {trip?.driver?.photo ? (
+                <Image source={{ uri: trip.driver.photo }} style={styles.avatar} />
+              ) : (
+                <View style={styles.avatar} />
+              )}
               <View style={styles.ratingBadge}>
                 <Text style={styles.ratingText}>5.0 ★</Text>
               </View>
             </View>
             <View>
-              <Text style={styles.driverName}>Sarah</Text>
-              <Text style={styles.driverTitle}>Professional Chauffeur</Text>
+              <Text style={styles.driverName}>{trip?.driver?.name || 'Driver'}</Text>
+              <Text style={styles.driverTitle}>{trip?.driver?.vehicle || 'Professional Chauffeur'}</Text>
             </View>
           </View>
           <View style={styles.driverActions}>
@@ -75,6 +115,25 @@ export default function ActiveTripScreen({ trip, onChat, onCall, routeInfo }) {
           </TouchableOpacity>
         </View>
       </BlurView>
+
+      {/* PAYMENT REQUIRED MODAL */}
+      {paymentRequest && (
+        <View style={styles.paymentModalContainer}>
+          <View style={styles.paymentModal}>
+            <Text style={styles.paymentTitle}>Payment Required</Text>
+            <Text style={styles.paymentSubtitle}>Your driver has arrived at the destination. Please settle the remaining balance to complete the trip.</Text>
+            
+            <View style={styles.amountBox}>
+              <Text style={styles.amountCurrency}>{paymentRequest.currency || 'GNF'}</Text>
+              <Text style={styles.amountValue}>{(paymentRequest.amount_due || 0).toLocaleString()}</Text>
+            </View>
+
+            <TouchableOpacity style={styles.payBtn} onPress={handlePayment}>
+              <Text style={styles.payBtnText}>Pay Now</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -121,4 +180,14 @@ const styles = StyleSheet.create({
   safetyRow: { flexDirection: 'row', gap: 12 },
   safetyBtn: { flex: 1, backgroundColor: C.gray50, borderWidth: 1, borderColor: C.gray200, borderRadius: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   safetyBtnText: { fontSize: 13, fontWeight: '700', color: C.lux900 },
+
+  paymentModalContainer: { position: 'absolute', top: 0, left: 0, width: width, height: height, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 1000, elevation: 1000 },
+  paymentModal: { width: '85%', backgroundColor: '#fff', borderRadius: 24, padding: 24, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.25, shadowRadius: 20, elevation: 10 },
+  paymentTitle: { fontSize: 22, fontWeight: '800', color: C.lux900, marginBottom: 8 },
+  paymentSubtitle: { fontSize: 14, color: C.gray500, textAlign: 'center', marginBottom: 24, lineHeight: 20 },
+  amountBox: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 32, backgroundColor: '#F9FAFB', paddingHorizontal: 24, paddingVertical: 16, borderRadius: 16, borderWidth: 1, borderColor: '#F3F4F6' },
+  amountCurrency: { fontSize: 18, fontWeight: '700', color: C.lux900, marginTop: 4, marginRight: 4 },
+  amountValue: { fontSize: 40, fontWeight: '900', color: C.lux900 },
+  payBtn: { width: '100%', backgroundColor: '#10B981', paddingVertical: 16, borderRadius: 16, alignItems: 'center' },
+  payBtnText: { color: '#fff', fontSize: 18, fontWeight: '700' }
 });

@@ -14,7 +14,9 @@ export default function ChatScreen({ onClose, role = 'CUSTOMER', customerName = 
   const scrollViewRef = useRef(null);
 
   useEffect(() => {
-    const handleNewMsg = (m) => setMsgs(prev => [...prev, m]);
+    const handleNewMsg = (m) => {
+      setMsgs(prev => [...prev, { id: m.id || Date.now(), text: m.text, sender: m.sender_id || 'OTHER' }]);
+    };
     socket.on('new_message', handleNewMsg);
     return () => socket.off('new_message', handleNewMsg);
   }, []);
@@ -25,7 +27,14 @@ export default function ChatScreen({ onClose, role = 'CUSTOMER', customerName = 
 
   const handleSend = () => {
     if(!text.trim()) return;
-    const m = { id: Date.now(), text, sender: role };
+    const m = { 
+      id: Date.now(), 
+      text, 
+      sender: role,
+      trip_id: trip?.trip_id,
+      recipient_id: trip?.customer_id
+    };
+    setMsgs(prev => [...prev, m]);
     socket.emit('send_message', m);
     setText('');
   };

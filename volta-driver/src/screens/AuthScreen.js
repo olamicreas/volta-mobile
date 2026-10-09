@@ -103,7 +103,7 @@ export default function AuthScreen({ onLogin }) {
       const res = await fetch(`${API_URL}/api/v1/auth/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone_number: phone, code: otp })
+        body: JSON.stringify({ phone_number: phone, code: otp, role: 'DRIVER' })
       });
       const data = await res.json();
       

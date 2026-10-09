@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, StyleSheet, Platform, TouchableOpacity, Text,
-  Dimensions, Image, StatusBar, ScrollView, Alert, ActivityIndicator, DeviceEventEmitter, Keyboard
+  Dimensions, Image, StatusBar, ScrollView, Alert, ActivityIndicator, DeviceEventEmitter, Keyboard, Linking
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Home, Clock, CreditCard, User, X, MapPin, Star } from 'lucide-react-native';
@@ -72,6 +72,7 @@ function MainApp({ navigation }) {
   const [currentAddress, setCurrentAddress] = useState('Current Location');
 
   const [tripState, setTripState] = useState(null);
+  const [paymentRequest, setPaymentRequest] = useState(null);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [modal, setModal] = useState(null);
@@ -95,6 +96,11 @@ function MainApp({ navigation }) {
           setProfile(p);
           socket.connect();
           setView('HOME');
+          
+          const pushToken = await requestPushPermissions();
+          if (pushToken) {
+            await api.updateProfile({ push_token: pushToken });
+          }
         }
       } catch(e) {
         console.log('Auto-login failed:', e);
@@ -162,7 +168,22 @@ function MainApp({ navigation }) {
       Alert.alert("No Drivers Found", data.reason || "Try again later");
       setView('HOME');
     });
-    return () => { socket.off('trip_accepted'); socket.off('trip_finished_receipt'); socket.off('dispatch_failed'); };
+    socket.on('trip_status_updated', (data) => {
+      setTripState(prev => {
+        if (!prev) return prev;
+        return { ...prev, status: data.status };
+      });
+    });
+    socket.on('payment_required', (data) => {
+      setPaymentRequest(data);
+    });
+    return () => { 
+      socket.off('trip_accepted'); 
+      socket.off('trip_finished_receipt'); 
+      socket.off('dispatch_failed'); 
+      socket.off('trip_status_updated');
+      socket.off('payment_required');
+    };
   }, []);
 
   useEffect(() => {
@@ -296,7 +317,15 @@ function MainApp({ navigation }) {
         {/* ACTIVE */}
         {view === 'ACTIVE' && (
           <ActiveTripScreen routeInfo={routeInfo} trip={tripState} onChat={() => setView('CHAT')}
-            onCall={() => Alert.alert('Calling Driver...', 'Ringing +224 620 00 00 00')} />
+            paymentRequest={paymentRequest} setPaymentRequest={setPaymentRequest}
+            onCall={() => {
+              const phone = tripState?.driver?.phone;
+              if (phone) {
+                Linking.openURL(`tel:${phone}`);
+              } else {
+                Alert.alert('Phone Number Unavailable', 'The driver has not provided a phone number.');
+              }
+            }} />
         )}
 
         

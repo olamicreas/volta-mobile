@@ -76,9 +76,15 @@ export default function RequestScreen({ trip, onAccept, onDecline }) {
 
           {/* Customer Info */}
           <View style={styles.customerRow}>
-            <Image source={{ uri: 'https://api.dicebear.com/7.x/avataaars/png?seed=James' }} style={styles.avatar} />
+            {trip?.customer?.photo ? (
+              <Image source={{ uri: trip.customer.photo }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
+                <Text style={{color: '#fff', fontWeight: 'bold'}}>{(trip?.customer?.name || 'C')[0]}</Text>
+              </View>
+            )}
             <View>
-              <Text style={styles.customerName}>{trip?.customer?.name || 'James C.'}</Text>
+              <Text style={styles.customerName}>{trip?.customer?.name || 'Customer'}</Text>
               <Text style={styles.customerStats}>4.92 Rating • 150+ Trips</Text>
             </View>
           </View>
