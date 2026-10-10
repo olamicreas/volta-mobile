@@ -100,7 +100,6 @@ export default function ActiveTripScreen({ trip, onChat, onCall, routeInfo, paym
         console.error(e);
         Alert.alert('Error', 'An unexpected error occurred during payment.');
       }
-    }
   };
 
   const status = trip?.status || 'ACCEPTED';
