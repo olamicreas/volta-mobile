@@ -26,7 +26,12 @@ export default function ActiveTripScreen({ trip, onChat, onCall, routeInfo, paym
         const verifyRes = await fetch(`${C.API_BASE_URL}/api/v1/payments/flutterwave/verify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ transaction_id: data.transaction_id.toString() })
+          body: JSON.stringify({ 
+            transaction_id: data.transaction_id.toString(),
+            trip_id: paymentRequest.trip_id,
+            driver_id: paymentRequest.driver_id,
+            amount: paymentRequest.amount
+          })
         });
         if (verifyRes.ok) {
           Alert.alert('Success', 'Payment successful! The driver can now complete the trip.');
@@ -42,18 +47,14 @@ export default function ActiveTripScreen({ trip, onChat, onCall, routeInfo, paym
     }
   };
 
-  const handlePayment = async () => {
-    if (paymentRequest?.currency === 'GNF') {
-      // Flutterwave is handled natively by the PayWithFlutterwave component
-
-    } else {
+    const handlePayment = async () => {
       // Stripe flow for USD
       try {
         const token = await AsyncStorage.getItem('userToken');
         const res = await fetch(`${C.API_BASE_URL}/api/v1/payments/stripe/create-intent`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ amount: Math.ceil((paymentRequest.amount_due || 25000) / 9000) }) // Convert GNF to approx USD dollars
+          body: JSON.stringify({ amount: Math.ceil((paymentRequest.amount || 25000) / 9000) }) // Convert GNF to approx USD dollars
         });
         const data = await res.json();
         
@@ -78,7 +79,12 @@ export default function ActiveTripScreen({ trip, onChat, onCall, routeInfo, paym
              const verifyRes = await fetch(`${C.API_BASE_URL}/api/v1/payments/stripe/verify`, {
                method: 'POST',
                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-               body: JSON.stringify({ intent_id: data.intentId })
+               body: JSON.stringify({ 
+                 intent_id: data.intentId,
+                 trip_id: paymentRequest.trip_id,
+                 driver_id: paymentRequest.driver_id,
+                 amount: paymentRequest.amount
+               })
              });
              if (verifyRes.ok) {
                Alert.alert('Success', 'Payment successful! The driver can now complete the trip.');
@@ -100,7 +106,7 @@ export default function ActiveTripScreen({ trip, onChat, onCall, routeInfo, paym
   const status = trip?.status || 'ACCEPTED';
 
   const headerLabel = status === 'ARRIVED' ? 'Driver is here' : status === 'IN_PROGRESS' ? 'Heading to' : 'Arriving In';
-  const headerTime = status === 'ARRIVED' ? 'Now' : status === 'IN_PROGRESS' ? 'Destination' : '4 Min';
+  const headerTime = status === 'ARRIVED' ? 'Now' : status === 'IN_PROGRESS' ? 'Destination' : (routeInfo?.duration ? routeInfo.duration : '-- Min');
 
   return (
     <View style={styles.container} pointerEvents="box-none">
@@ -177,28 +183,29 @@ export default function ActiveTripScreen({ trip, onChat, onCall, routeInfo, paym
             </View>
 
             
-            {paymentRequest?.currency === 'GNF' ? (
+            {/* Let the user choose their payment method for testing purposes */}
+            <View style={{ flexDirection: 'column', gap: 10, width: '100%' }}>
+              <TouchableOpacity style={[styles.payBtn, { backgroundColor: '#6366f1' }]} onPress={handlePayment}>
+                <Text style={styles.payBtnText}>Pay with Stripe (Test Card)</Text>
+              </TouchableOpacity>
+              
               <PayWithFlutterwave
                 onRedirect={handleFlutterwaveRedirect}
                 options={{
                   tx_ref: "volta_" + Date.now(),
                   authorization: "FLWPUBK_TEST-7aa0e7a287b2c3a13861d7891ee645a2-X",
                   customer: { email: 'customer@volta.com' },
-                  amount: paymentRequest?.amount_due || 25000,
+                  amount: paymentRequest?.amount || 25000,
                   currency: 'GNF',
                   payment_options: 'card,mobilemoneygn,ussd'
                 }}
                 customButton={(props) => (
-                  <TouchableOpacity style={styles.payBtn} onPress={props.onPress} disabled={props.isInitializing}>
+                  <TouchableOpacity style={[styles.payBtn, { backgroundColor: '#f59e0b' }]} onPress={props.onPress} disabled={props.isInitializing}>
                     <Text style={styles.payBtnText}>Pay with Flutterwave</Text>
                   </TouchableOpacity>
                 )}
               />
-            ) : (
-              <TouchableOpacity style={styles.payBtn} onPress={handlePayment}>
-                <Text style={styles.payBtnText}>Pay Now (Stripe)</Text>
-              </TouchableOpacity>
-            )}
+            </View>
           </View>
         </View>
       )}

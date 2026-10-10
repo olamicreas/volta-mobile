@@ -168,6 +168,10 @@ function MainApp({ navigation }) {
       navigation.navigate('Earnings');
     });
 
+    socket.on('awaiting_payment', () => {
+      Alert.alert('Awaiting Payment', 'Waiting for the customer to complete payment...');
+    });
+
     socket.on('error', (data) => {
       Alert.alert('Action Failed', data.message || 'An error occurred.');
     });

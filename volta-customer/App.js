@@ -168,6 +168,10 @@ function MainApp({ navigation }) {
       Alert.alert("No Drivers Found", data.reason || "Try again later");
       setView('HOME');
     });
+        socket.on('driver_location', (data) => {
+      setTripState(prev => prev ? { ...prev, driverLocation: { latitude: data.lat, longitude: data.lng } } : prev);
+    });
+
     socket.on('trip_status_updated', (data) => {
       setTripState(prev => {
         if (!prev) return prev;
