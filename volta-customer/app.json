@@ -64,7 +64,14 @@
         }
       ],
       "./withStripeDisableSPM.js",
-      "./withSwiftConcurrency.js"
+      "./withSwiftConcurrency.js",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.volta.customer",
+          "enableGooglePay": true
+        }
+      ]
     ],
     "extra": {
       "eas": {
