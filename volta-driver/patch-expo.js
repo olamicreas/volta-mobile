@@ -36,6 +36,11 @@ const patchPackageSwift = (filePath) => {
       modified = true;
       console.log(`Patched ${filePath} - Commented out NonisolatedNonsendingByDefault`);
     }
+    if (/,(\s*\))/.test(content)) {
+      content = content.replace(/,(\s*\))/g, '$1');
+      modified = true;
+      console.log(`Patched ${filePath} - Removed trailing commas before closing parentheses for Swift 6.0`);
+    }
     if (modified) {
       fs.writeFileSync(filePath, content);
     }

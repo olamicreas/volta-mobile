@@ -21,6 +21,10 @@ const patchFile = (filePath) => {
       content = content.replace(/\.enableUpcomingFeature\("NonisolatedNonsendingByDefault"\),?/g, '// .enableUpcomingFeature("NonisolatedNonsendingByDefault"),');
       modified = true;
     }
+    if (/,(\s*\))/.test(content)) {
+      content = content.replace(/,(\s*\))/g, '$1');
+      modified = true;
+    }
     if (modified) {
       fs.writeFileSync(filePath, content);
       console.log(`Patched ${filePath}`);
