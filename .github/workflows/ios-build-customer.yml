@@ -23,10 +23,10 @@ jobs:
           eas-version: latest
           token: Vn6hHQ1cb4AF0iNdANOmlb5oGSMZ7zFYFy4jdaKy
 
-      - name: Setup Xcode 26.3
+      - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '26.3'
+          xcode-version: 'latest-stable'
 
       - name: Download iOS Platform
         run: |
