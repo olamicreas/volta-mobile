@@ -194,6 +194,34 @@ function MainApp({ navigation }) {
     return () => { if (sub && sub.remove) sub.remove(); else DeviceEventEmitter.removeAllListeners('DO_LOGOUT'); };
   }, [navigation]);
 
+
+  useEffect(() => {
+    async function updateRoute() {
+      if (!tripState) {
+        setRouteCoords([]);
+        setRouteInfo(null);
+        return;
+      }
+      if (view === 'EN_ROUTE_PICKUP') {
+        const route = await fetchRoute(location.latitude, location.longitude, tripState.pickup.lat, tripState.pickup.lng);
+        if (route) {
+          setRouteCoords(route.coordinates);
+          setRouteInfo({ distance: route.distance, duration: route.duration });
+        }
+      } else if (view === 'EN_ROUTE_DROPOFF') {
+        const route = await fetchRoute(tripState.pickup.lat, tripState.pickup.lng, tripState.destination.lat, tripState.destination.lng);
+        if (route) {
+          setRouteCoords(route.coordinates);
+          setRouteInfo({ distance: route.distance, duration: route.duration });
+        }
+      } else {
+        setRouteCoords([]);
+        setRouteInfo(null);
+      }
+    }
+    updateRoute();
+  }, [view, tripState]);
+
   // ── Handlers ────────────────────────────────────────
   const toggleOnline = () => {
     const currentView = viewRef.current;

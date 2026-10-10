@@ -44,8 +44,8 @@ export default function ReceiptScreen({ trip, onDone }) {
           </View>
 
           <View style={styles.paymentBadge}>
-            <View style={styles.cinetBox}><Text style={styles.cinetText}>CINETPAY</Text></View>
-            <Text style={styles.paidText}>Paid via Cinetpay</Text>
+            <View style={styles.cinetBox}><Text style={styles.cinetText}>{trip?.currency === 'GNF' ? 'FLUTTERWAVE' : 'STRIPE'}</Text></View>
+            <Text style={styles.paidText}>Paid via {trip?.currency === 'GNF' ? 'Flutterwave' : 'Stripe'}</Text>
             <ChevronRight size={16} color={C.gray400} />
           </View>
 
