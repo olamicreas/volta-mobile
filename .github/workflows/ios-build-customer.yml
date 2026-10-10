@@ -39,7 +39,10 @@ jobs:
 
       - name: Install dependencies
         working-directory: volta-customer
-        run: npm install
+        run: |
+          npm install
+          node patch-expo.js
+          node ../patch-swift-tools.js
 
       - name: Build iOS App locally on macOS Runner
         working-directory: volta-customer

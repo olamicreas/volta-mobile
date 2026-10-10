@@ -15,10 +15,29 @@ const patchRuntimeScheduler = (filePath) => {
 const patchPackageSwift = (filePath) => {
   if (fs.existsSync(filePath)) {
     let content = fs.readFileSync(filePath, 'utf8');
+    let modified = false;
+    if (content.includes('swift-tools-version: 6.2')) {
+      content = content.replace(/swift-tools-version: 6\.2/g, 'swift-tools-version: 6.0');
+      modified = true;
+      console.log(`Patched ${filePath} - Changed swift-tools-version to 6.0`);
+    }
     if (content.includes('swiftLanguageModes: [.v6]')) {
-        content = content.replace(/swiftLanguageModes: \[\.v6\]/g, 'swiftLanguageModes: [.v5]');
-        fs.writeFileSync(filePath, content);
-        console.log(`Patched ${filePath} - Changed swiftLanguageModes to .v5`);
+      content = content.replace(/swiftLanguageModes: \[\.v6\]/g, 'swiftLanguageModes: [.v5]');
+      modified = true;
+      console.log(`Patched ${filePath} - Changed swiftLanguageModes to .v5`);
+    }
+    if (content.includes('.enableUpcomingFeature("InferIsolatedConformances")')) {
+      content = content.replace(/\.enableUpcomingFeature\("InferIsolatedConformances"\),?/g, '// .enableUpcomingFeature("InferIsolatedConformances"),');
+      modified = true;
+      console.log(`Patched ${filePath} - Commented out InferIsolatedConformances`);
+    }
+    if (content.includes('.enableUpcomingFeature("NonisolatedNonsendingByDefault")')) {
+      content = content.replace(/\.enableUpcomingFeature\("NonisolatedNonsendingByDefault"\),?/g, '// .enableUpcomingFeature("NonisolatedNonsendingByDefault"),');
+      modified = true;
+      console.log(`Patched ${filePath} - Commented out NonisolatedNonsendingByDefault`);
+    }
+    if (modified) {
+      fs.writeFileSync(filePath, content);
     }
   }
 };
@@ -83,6 +102,7 @@ const patchConvertFormData = (filePath) => {
 const appDir = __dirname;
 patchRuntimeScheduler(path.join(appDir, 'node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI-Cxx/include/RuntimeScheduler.h'));
 patchPackageSwift(path.join(appDir, 'node_modules/expo-modules-jsi/apple/Package.swift'));
+patchPackageSwift(path.join(appDir, 'node_modules/@expo/expo-modules-macros-plugin/apple/Package.swift'));
 patchJavaScriptRuntime(path.join(appDir, 'node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptRuntime.swift'));
 patchJavaScriptPromise(path.join(appDir, 'node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptPromise.swift'));
 patchConvertFormData(path.join(appDir, 'node_modules/expo/src/winter/fetch/convertFormData.ts'));
