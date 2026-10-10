@@ -23,28 +23,26 @@ export default function WalletScreen({ navigation, wallet }) {
         <View style={styles.walletCard}>
             <Text style={styles.walletLabel}>Volta Balance</Text>
             <Text style={styles.walletAmount}>{wallet ? wallet.balance.toLocaleString() : '0'} GNF</Text>
-            <View style={styles.cinetBadge}><Text style={styles.cinetText}>Powered by CinetPay</Text></View>
+            <View style={styles.cinetBadge}><Text style={styles.cinetText}>Verified Wallet</Text></View>
         </View>
       </View>
 
-        <Text style={styles.sectionTitle}>Payment Methods</Text>
+        <Text style={styles.sectionTitle}>Supported Payment Methods</Text>
         <View style={styles.paymentList}>
-          <TouchableOpacity style={styles.paymentRow}>
-            <View style={styles.iconWrap}><Banknote size={20} color={C.lux900} /></View>
-            <Text style={styles.paymentText}>Cash</Text>
-            <ChevronRight size={20} color={C.gray400} />
-          </TouchableOpacity>
+          <View style={styles.paymentRow}>
+            <View style={styles.iconWrap}><Banknote size={20} color="#05A357" /></View>
+            <Text style={styles.paymentText}>Cash to Driver (GNF)</Text>
+          </View>
           <View style={{ height: 1, backgroundColor: '#F3F4F6', marginLeft: 64 }} />
-          <TouchableOpacity style={styles.paymentRow}>
-            <View style={styles.iconWrap}><Smartphone size={20} color={C.lux900} /></View>
-            <Text style={styles.paymentText}>Orange Money (...1234)</Text>
-            <ChevronRight size={20} color={C.gray400} />
-          </TouchableOpacity>
+          <View style={styles.paymentRow}>
+            <View style={styles.iconWrap}><Smartphone size={20} color="#f59e0b" /></View>
+            <Text style={styles.paymentText}>Flutterwave (Mobile Money / GNF)</Text>
+          </View>
           <View style={{ height: 1, backgroundColor: '#F3F4F6', marginLeft: 64 }} />
-          <TouchableOpacity style={styles.paymentRow} onPress={() => navigation.navigate('AddPayment')}>
-            <View style={styles.iconWrap}><Plus size={20} color={C.lux900} /></View>
-            <Text style={styles.paymentText}>Add Payment Method</Text>
-          </TouchableOpacity>
+          <View style={styles.paymentRow}>
+            <View style={styles.iconWrap}><CreditCard size={20} color="#6366f1" /></View>
+            <Text style={styles.paymentText}>Stripe (Cards / USD)</Text>
+          </View>
         </View>
       </ScrollView>
     </View>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { ArrowLeft, Tag } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import C from '../constants/colors';
@@ -17,7 +17,16 @@ export default function PromotionsScreen({ navigation }) {
         <View style={{width: 40}} />
       </View>
 
-      <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
+      >
+        <ScrollView 
+          style={{ flex: 1, backgroundColor: '#F9FAFB' }}
+          contentContainerStyle={{ paddingBottom: Math.max(32, insets.bottom + 20) }}
+          keyboardShouldPersistTaps="handled"
+        >
         <View style={styles.inputSection}>
           <Text style={styles.label}>Enter Promo Code</Text>
           <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -38,7 +47,8 @@ export default function PromotionsScreen({ navigation }) {
             </View>
           </View>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

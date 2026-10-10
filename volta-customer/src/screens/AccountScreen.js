@@ -38,7 +38,15 @@ export default function AccountScreen({ navigation, profile }) {
 
       <ScrollView style={{ flex: 1 }}>
         <TouchableOpacity style={styles.profileCard} onPress={() => navigation.navigate('ProfileDetail')}>
-          <Image source={{ uri: `https://api.dicebear.com/7.x/avataaars/png?seed=${prof?.first_name || 'User'}` }} style={styles.avatar} />
+          {prof?.profile_picture_url ? (
+            <Image source={{ uri: prof.profile_picture_url }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, { justifyContent: 'center', alignItems: 'center', backgroundColor: C.lux900 }]}>
+              <Text style={{ fontSize: 24, fontWeight: '800', color: C.gold }}>
+                {((prof?.first_name ? prof.first_name[0] : 'U') || 'U').toUpperCase()}
+              </Text>
+            </View>
+          )}
           <View style={{ flex: 1 }}>
             <Text style={styles.name}>{prof ? `${prof.first_name || ""} ${prof.last_name || ""}` : "..."}</Text>
             <Text style={styles.tier}>Volta Black Member</Text>

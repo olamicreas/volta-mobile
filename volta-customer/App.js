@@ -52,6 +52,10 @@ const MAP_VIEWS = ['HOME', 'ACTIVE'];
 
 const Stack = createStackNavigator();
 
+let hasPromptedProfileGlobal = false;
+let profileAlertTimerGlobal = null;
+let isProfileAlertShowingGlobal = false;
+
 function MainApp({ navigation }) {
 
   const [view, setView] = useState('AUTH');
@@ -73,6 +77,11 @@ function MainApp({ navigation }) {
 
   const [tripState, setTripState] = useState(null);
   const [paymentRequest, setPaymentRequest] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
+
+  const viewRef = useRef(view);
+  useEffect(() => { viewRef.current = view; }, [view]);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [modal, setModal] = useState(null);
@@ -87,6 +96,71 @@ function MainApp({ navigation }) {
   
   const [isInitializing, setIsInitializing] = useState(true);
 
+  const promptProfileCompletion = (p) => {
+    if (hasPromptedProfileGlobal || isProfileAlertShowingGlobal) return;
+    hasPromptedProfileGlobal = true;
+
+    if (profileAlertTimerGlobal) {
+      clearTimeout(profileAlertTimerGlobal);
+      profileAlertTimerGlobal = null;
+    }
+
+    if (!p || !p.first_name || !p.first_name.trim()) {
+      profileAlertTimerGlobal = setTimeout(() => {
+        profileAlertTimerGlobal = null;
+        if (isProfileAlertShowingGlobal) return;
+        isProfileAlertShowingGlobal = true;
+
+        Alert.alert(
+          "Complete Your Profile",
+          "Welcome to Volta! Your profile is not yet completed. Please complete your profile details to enjoy the full experience.",
+          [
+            {
+              text: "Complete Profile",
+              onPress: () => {
+                isProfileAlertShowingGlobal = false;
+                if (profileAlertTimerGlobal) {
+                  clearTimeout(profileAlertTimerGlobal);
+                  profileAlertTimerGlobal = null;
+                }
+                navigation.navigate('ProfileDetail');
+              }
+            },
+            {
+              text: "Later",
+              style: "cancel",
+              onPress: () => {
+                isProfileAlertShowingGlobal = false;
+                if (profileAlertTimerGlobal) {
+                  clearTimeout(profileAlertTimerGlobal);
+                  profileAlertTimerGlobal = null;
+                }
+              }
+            }
+          ],
+          {
+            cancelable: true,
+            onDismiss: () => {
+              isProfileAlertShowingGlobal = false;
+            }
+          }
+        );
+      }, 700);
+    }
+  };
+
+  useEffect(() => {
+    const cancelSub = DeviceEventEmitter.addListener('CANCEL_PROFILE_PROMPT', () => {
+      if (profileAlertTimerGlobal) {
+        clearTimeout(profileAlertTimerGlobal);
+        profileAlertTimerGlobal = null;
+      }
+      hasPromptedProfileGlobal = true;
+      isProfileAlertShowingGlobal = false;
+    });
+    return () => { if (cancelSub && cancelSub.remove) cancelSub.remove(); };
+  }, []);
+
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -95,12 +169,33 @@ function MainApp({ navigation }) {
           const p = await api.getProfile();
           setProfile(p);
           socket.connect();
-          setView('HOME');
+          try {
+            const userPlaces = await api.getPlaces();
+            if (Array.isArray(userPlaces)) setPlaces(userPlaces);
+          } catch(e) {}
+          
+          try {
+            const activeRes = await api.getActiveTrip();
+            if (activeRes && activeRes.active && (activeRes.trip.status === 'ACCEPTED' || activeRes.trip.status === 'IN_PROGRESS')) {
+              setTripState(activeRes.trip);
+              setView('ACTIVE');
+              api.getTripMessages(activeRes.trip.id || activeRes.trip.trip_id).then(msgs => {
+                if (Array.isArray(msgs) && msgs.length > 0) setChatMessages(msgs);
+              }).catch(() => {});
+            } else {
+              setView('HOME');
+            }
+          } catch(e) {
+            setView('HOME');
+          }
           
           const pushToken = await requestPushPermissions();
           if (pushToken) {
             await api.updateProfile({ push_token: pushToken });
           }
+
+          // Alert if customer missed profile submission (guarded & debounced)
+          promptProfileCompletion(p);
         }
       } catch(e) {
         console.log('Auto-login failed:', e);
@@ -109,6 +204,22 @@ function MainApp({ navigation }) {
       }
     };
     initAuth();
+    return () => {
+      if (profileAlertTimerGlobal) {
+        clearTimeout(profileAlertTimerGlobal);
+        profileAlertTimerGlobal = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('PLACES_UPDATED', async () => {
+      try {
+        const userPlaces = await api.getPlaces();
+        if (Array.isArray(userPlaces)) setPlaces(userPlaces);
+      } catch(e) {}
+    });
+    return () => { if (sub && sub.remove) sub.remove(); };
   }, []);
 
   const mapRef = useRef(null);
@@ -158,17 +269,23 @@ function MainApp({ navigation }) {
   useEffect(() => {
     socket.on('trip_accepted', (data) => {
       setTripState({ ...data, status: 'ACCEPTED' });
+      setChatMessages([]);
+      setUnreadChatCount(0);
       setView('ACTIVE');
     });
     socket.on('trip_finished_receipt', (data) => {
       setTripState(data);
+      setChatMessages([]);
+      setUnreadChatCount(0);
       setView('RECEIPT');
     });
     socket.on('dispatch_failed', (data) => {
       Alert.alert("No Drivers Found", data.reason || "Try again later");
+      setChatMessages([]);
+      setUnreadChatCount(0);
       setView('HOME');
     });
-        socket.on('driver_location', (data) => {
+    socket.on('driver_location', (data) => {
       setTripState(prev => prev ? { ...prev, driverLocation: { latitude: data.lat, longitude: data.lng } } : prev);
     });
 
@@ -179,22 +296,77 @@ function MainApp({ navigation }) {
       });
     });
     socket.on('payment_required', (data) => {
+      console.log('[Customer] Received payment_required:', data);
       setPaymentRequest(data);
+      setView('ACTIVE');
     });
+
+    socket.on('new_message', (msg) => {
+      console.log('[Customer] new_message received:', msg);
+      setChatMessages(prev => {
+        if (prev.some(m => (m.id && m.id === msg.id) || (m.client_id && m.client_id === msg.client_id))) {
+          return prev;
+        }
+        return [...prev, msg];
+      });
+      if (viewRef.current !== 'CHAT') {
+        setUnreadChatCount(c => c + 1);
+        sendLocalPush(msg.sender_name || 'Driver', msg.text);
+      }
+    });
+
+    socket.on('message_sent_ack', (ack) => {
+      setChatMessages(prev => prev.map(m => {
+        if ((m.client_id && m.client_id === ack.client_id) || m.id === ack.client_id) {
+          return { ...m, id: ack.id, status: 'delivered' };
+        }
+        return m;
+      }));
+    });
+
     return () => { 
       socket.off('trip_accepted'); 
       socket.off('trip_finished_receipt'); 
       socket.off('dispatch_failed'); 
+      socket.off('driver_location');
       socket.off('trip_status_updated');
       socket.off('payment_required');
+      socket.off('new_message');
+      socket.off('message_sent_ack');
     };
   }, []);
+
+  // ── Active Trip Polling Fallback while on MATCHING ───────────────────
+  useEffect(() => {
+    let interval = null;
+    if (view === 'MATCHING') {
+      interval = setInterval(async () => {
+        try {
+          const res = await api.getActiveTrip();
+          if (res && res.active && (res.trip.status === 'ACCEPTED' || res.trip.status === 'IN_PROGRESS')) {
+            console.log('[Polling] Detected accepted trip:', res.trip.id);
+            setTripState(res.trip);
+            setView('ACTIVE');
+          }
+        } catch (e) {
+          // Ignore transient error
+        }
+      }, 2000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [view]);
 
   useEffect(() => {
     
     const sub = DeviceEventEmitter.addListener('DO_LOGOUT', async () => {
-      
-      
+      if (profileAlertTimerGlobal) {
+        clearTimeout(profileAlertTimerGlobal);
+        profileAlertTimerGlobal = null;
+      }
+      hasPromptedProfileGlobal = false;
+      isProfileAlertShowingGlobal = false;
       await AsyncStorage.removeItem('userToken');
       setProfile(null);
       socket.disconnect();
@@ -210,13 +382,30 @@ function MainApp({ navigation }) {
     setView('BOOKING');
   };
 
-  const handleBook = (vehicleName, price) => {
+  const handleBook = (vehicleName, price, paymentMethod = 'FLUTTERWAVE', currency = 'GNF') => {
     setView('MATCHING');
+    const customerName = ((profile?.first_name || '') + ' ' + (profile?.last_name || '')).trim() || 'Passenger';
+    setTripState(prev => ({
+      ...prev,
+      vehicleType: vehicleName,
+      price: price,
+      fare: price,
+      payment_method: paymentMethod,
+      currency: currency
+    }));
     socket.emit('request_trip', {
-      customer: { id: 'cust1', name: 'James Carter', rating: 4.9 },
+      customer: { 
+        id: profile?.id, 
+        name: customerName, 
+        phone: profile?.phone_number || '', 
+        rating: profile?.rating || 5.0 
+      },
       pickup: { name: pickup, lat: location.latitude, lng: location.longitude },
       destination: { name: destName, lat: destLat, lng: destLng },
-      vehicleType: vehicleName, price,
+      vehicleType: vehicleName,
+      price: price,
+      payment_method: paymentMethod,
+      currency: currency
     });
   };
 
@@ -275,7 +464,17 @@ function MainApp({ navigation }) {
         {/* AUTH — full screen, no map */}
         {view === 'AUTH' && (
           <View style={StyleSheet.absoluteFill} pointerEvents="auto">
-            <AuthScreen onLogin={async () => { socket.connect(); try { const p = await api.getProfile(); setProfile(p); } catch(e) {} setView('HOME'); }} />
+            <AuthScreen onLogin={async () => {
+              socket.connect();
+              try {
+                const p = await api.getProfile();
+                setProfile(p);
+                promptProfileCompletion(p);
+                const userPlaces = await api.getPlaces();
+                if (Array.isArray(userPlaces)) setPlaces(userPlaces);
+              } catch(e) {}
+              setView('HOME');
+            }} />
           </View>
         )}
 
@@ -320,14 +519,28 @@ function MainApp({ navigation }) {
 
         {/* ACTIVE */}
         {view === 'ACTIVE' && (
-          <ActiveTripScreen routeInfo={routeInfo} trip={tripState} onChat={() => setView('CHAT')}
+          <ActiveTripScreen routeInfo={routeInfo} trip={tripState}
+            unreadCount={unreadChatCount}
+            onChat={() => { setUnreadChatCount(0); setView('CHAT'); }}
             paymentRequest={paymentRequest} setPaymentRequest={setPaymentRequest}
-            onCall={() => {
+            onCall={async () => {
               const phone = tripState?.driver?.phone;
-              if (phone) {
-                Linking.openURL(`tel:${phone}`);
-              } else {
-                Alert.alert('Phone Number Unavailable', 'The driver has not provided a phone number.');
+              if (!phone) {
+                Alert.alert('Phone Unavailable', 'The driver has not provided a phone number.');
+                return;
+              }
+              const clean = phone.replace(/[^\d+]/g, '');
+              const url = `tel:${clean}`;
+              try {
+                const supported = await Linking.canOpenURL(url);
+                if (supported) {
+                  await Linking.openURL(url);
+                } else {
+                  Alert.alert('Call Not Supported', `Phone calls cannot be placed directly from this device or simulator.\n\nDriver phone: ${phone}`);
+                }
+              } catch (err) {
+                console.warn('[Call Error]', err);
+                Alert.alert('Call Failed', `Could not open dialer for ${phone}`);
               }
             }} />
         )}
@@ -336,7 +549,13 @@ function MainApp({ navigation }) {
         {/* CHAT */}
         {view === 'CHAT' && (
           <View style={[StyleSheet.absoluteFill, { zIndex: 9999, elevation: 99 }]} pointerEvents="auto">
-            <ChatScreen role="CUSTOMER" trip={tripState} onClose={() => setView('ACTIVE')} />
+            <ChatScreen 
+              role="CUSTOMER" 
+              trip={tripState} 
+              messages={chatMessages}
+              setMessages={setChatMessages}
+              onClose={() => setView('ACTIVE')} 
+            />
           </View>
         )}
 

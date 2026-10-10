@@ -1,8 +1,9 @@
 import React, { useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  Dimensions, Animated, KeyboardAvoidingView, Platform, ActivityIndicator
+  Dimensions, Animated, KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView, Keyboard
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Crown, ArrowRight, CheckCircle2 } from 'lucide-react-native';
 import { Image as RNImage } from 'react-native';
@@ -16,6 +17,7 @@ const { width, height } = Dimensions.get('window');
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://163.245.215.14:8000';
 
 export default function AuthScreen({ onLogin }) {
+  const insets = useSafeAreaInsets();
   const opacity = useRef(new Animated.Value(1)).current;
   
   const [phone, setPhone] = useState('');
@@ -83,6 +85,7 @@ export default function AuthScreen({ onLogin }) {
   };
 
   const verifyOTP = async () => {
+    Keyboard.dismiss();
     if (!otp || otp.length < 4) {
       setError('Enter the 4-digit OTP');
       return;
@@ -104,6 +107,7 @@ export default function AuthScreen({ onLogin }) {
         try {
             const prof = await api.getProfile();
             if (!prof.first_name) {
+                Keyboard.dismiss();
                 setStep('PROFILE');
                 return;
             }
@@ -128,14 +132,27 @@ export default function AuthScreen({ onLogin }) {
   return (
     <Animated.View style={[StyleSheet.absoluteFill, styles.container, { opacity }]}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.inner}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
       >
-        <View style={styles.card}>
-          <View style={[styles.iconBox, { backgroundColor: '#000', overflow: 'hidden', padding: 0 }]}>
-            <RNImage source={require('../../assets/icon.png')} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-          </View>
+        <ScrollView
+          style={{ width: '100%' }}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingTop: Math.max(30, insets.top + 16),
+              paddingBottom: Math.max(24, insets.bottom + 20)
+            }
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          <View style={styles.card}>
+            <View style={[styles.iconBox, { backgroundColor: '#000', overflow: 'hidden', padding: 0 }]}>
+              <RNImage source={require('../../assets/icon.png')} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+            </View>
 
           <Text style={styles.logo}>Volta</Text>
           <Text style={styles.tagline}>The luxury ride experience.</Text>
@@ -175,7 +192,6 @@ export default function AuthScreen({ onLogin }) {
                   style={styles.input}
                   value={firstName}
                   onChangeText={setFirstName}
-                  autoFocus
                   keyboardType="default"
                   placeholder="James"
                   placeholderTextColor="rgba(245,247,250,0.4)"
@@ -227,7 +243,12 @@ export default function AuthScreen({ onLogin }) {
                 <TextInput
                   style={styles.input}
                   value={otp}
-                  onChangeText={setOtp}
+                  onChangeText={(val) => {
+                    setOtp(val);
+                    if (val.length === 4) {
+                      Keyboard.dismiss();
+                    }
+                  }}
                   keyboardType="number-pad"
                   placeholder="0000"
                   maxLength={4}
@@ -248,15 +269,17 @@ export default function AuthScreen({ onLogin }) {
             </>
           )}
         </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { position: 'absolute', top: 0, left: 0, width: width, height: height, backgroundColor: C.lux900, justifyContent: 'center', alignItems: 'center', zIndex: 999, elevation: 99 },
-  inner: { width: '100%', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },
-  card: { width: '100%', maxWidth: 400, alignItems: 'center' },
+  container: { position: 'absolute', top: 0, left: 0, width: width, height: height, backgroundColor: C.lux900, zIndex: 999, elevation: 99 },
+  inner: { flex: 1, width: '100%' },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },
+  card: { width: '100%', maxWidth: 420, alignItems: 'center' },
   iconBox: { width: 80, height: 80, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 28, shadowColor: C.gold, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 20, elevation: 12 },
   logo: { fontSize: 40, fontWeight: '800', color: '#fff', letterSpacing: 2, marginBottom: 8 },
   tagline: { fontSize: 17, color: 'rgba(245,247,250,0.65)', fontWeight: '500', marginBottom: 30, textAlign: 'center' },

@@ -54,11 +54,16 @@ export default function DashboardScreen({ isOnline, toggleOnline, onMenuPress, o
           <Text style={styles.earningsAmount}>{(wallet?.balance ?? 0).toLocaleString()} GNF</Text>
         </View>
 
-        <TouchableOpacity style={styles.avatarWrap}>
-          <Image
-            source={{ uri: `https://api.dicebear.com/7.x/avataaars/png?seed=${profile?.first_name || 'User'}` }}
-            style={styles.avatar}
-          />
+        <TouchableOpacity style={styles.avatarWrap} onPress={onProfilePress} activeOpacity={0.8}>
+          {profile?.profile_picture_url ? (
+            <Image source={{ uri: profile.profile_picture_url }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#1E293B' }]}>
+              <Text style={{ fontSize: 16, fontWeight: '800', color: '#05A357' }}>
+                {((profile?.first_name ? profile.first_name[0] : 'D') || 'D').toUpperCase()}
+              </Text>
+            </View>
+          )}
           <View style={[styles.statusDot, { backgroundColor: isOnline ? C.brand : C.red }]} />
         </TouchableOpacity>
       </View>

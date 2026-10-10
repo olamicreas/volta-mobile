@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, StyleSheet, Platform, TouchableOpacity, Text,
-  Dimensions, Image, StatusBar, Alert, ActivityIndicator, DeviceEventEmitter
+  Dimensions, Image, StatusBar, Alert, ActivityIndicator, DeviceEventEmitter, Linking
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Star, Inbox, Settings, Wallet, X } from 'lucide-react-native';
@@ -42,12 +42,18 @@ const START_LNG = -13.6773;
 
 const Stack = createStackNavigator();
 
+let hasPromptedProfileGlobal = false;
+let profileAlertTimerGlobal = null;
+let isProfileAlertShowingGlobal = false;
+
 function MainApp({ navigation }) {
 
   const [view, setView] = useState('AUTH');
   const [profile, setProfile] = useState(null);
   const [wallet, setWallet] = useState(null);
   const [chatReturnView, setChatReturnView] = useState('EN_ROUTE_PICKUP');
+  const [chatMessages, setChatMessages] = useState([]);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [location, setLocation] = useState({ latitude: START_LAT, longitude: START_LNG });
   const [tripState, setTripState] = useState(null);
 
@@ -59,6 +65,112 @@ function MainApp({ navigation }) {
   
   const [isInitializing, setIsInitializing] = useState(true);
 
+  const promptProfileCompletion = (p) => {
+    if (hasPromptedProfileGlobal || isProfileAlertShowingGlobal) return;
+    hasPromptedProfileGlobal = true;
+
+    if (profileAlertTimerGlobal) {
+      clearTimeout(profileAlertTimerGlobal);
+      profileAlertTimerGlobal = null;
+    }
+
+    if (!p || !p.first_name || !p.first_name.trim()) {
+      profileAlertTimerGlobal = setTimeout(() => {
+        profileAlertTimerGlobal = null;
+        if (isProfileAlertShowingGlobal) return;
+        isProfileAlertShowingGlobal = true;
+
+        Alert.alert(
+          "Complete Driver Profile",
+          "Welcome to Volta Driver! Your profile details are incomplete. Please complete your profile to finish setting up your account.",
+          [
+            {
+              text: "Complete Profile",
+              onPress: () => {
+                isProfileAlertShowingGlobal = false;
+                if (profileAlertTimerGlobal) {
+                  clearTimeout(profileAlertTimerGlobal);
+                  profileAlertTimerGlobal = null;
+                }
+                navigation.navigate('ProfileDetail');
+              }
+            },
+            {
+              text: "Later",
+              style: "cancel",
+              onPress: () => {
+                isProfileAlertShowingGlobal = false;
+                if (profileAlertTimerGlobal) {
+                  clearTimeout(profileAlertTimerGlobal);
+                  profileAlertTimerGlobal = null;
+                }
+              }
+            }
+          ],
+          {
+            cancelable: true,
+            onDismiss: () => {
+              isProfileAlertShowingGlobal = false;
+            }
+          }
+        );
+      }, 700);
+    } else if (!p.vehicle_type && p.driver_category !== 'COMPANY_CAR') {
+      profileAlertTimerGlobal = setTimeout(() => {
+        profileAlertTimerGlobal = null;
+        if (isProfileAlertShowingGlobal) return;
+        isProfileAlertShowingGlobal = true;
+
+        Alert.alert(
+          "Complete Vehicle Setup",
+          "Your vehicle details are incomplete. Please complete your vehicle profile and document uploads.",
+          [
+            {
+              text: "Setup Vehicle",
+              onPress: () => {
+                isProfileAlertShowingGlobal = false;
+                if (profileAlertTimerGlobal) {
+                  clearTimeout(profileAlertTimerGlobal);
+                  profileAlertTimerGlobal = null;
+                }
+                navigation.navigate('VehicleProfile');
+              }
+            },
+            {
+              text: "Later",
+              style: "cancel",
+              onPress: () => {
+                isProfileAlertShowingGlobal = false;
+                if (profileAlertTimerGlobal) {
+                  clearTimeout(profileAlertTimerGlobal);
+                  profileAlertTimerGlobal = null;
+                }
+              }
+            }
+          ],
+          {
+            cancelable: true,
+            onDismiss: () => {
+              isProfileAlertShowingGlobal = false;
+            }
+          }
+        );
+      }, 700);
+    }
+  };
+
+  useEffect(() => {
+    const cancelSub = DeviceEventEmitter.addListener('CANCEL_PROFILE_PROMPT', () => {
+      if (profileAlertTimerGlobal) {
+        clearTimeout(profileAlertTimerGlobal);
+        profileAlertTimerGlobal = null;
+      }
+      hasPromptedProfileGlobal = true;
+      isProfileAlertShowingGlobal = false;
+    });
+    return () => { if (cancelSub && cancelSub.remove) cancelSub.remove(); };
+  }, []);
+
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -67,13 +179,35 @@ function MainApp({ navigation }) {
           const p = await api.getProfile();
           setProfile(p);
           socket.connect();
-          setView('OFFLINE');
           
           // Request and send push token to backend
           const pushToken = await requestPushPermissions();
           if (pushToken) {
             await api.updateProfile({ push_token: pushToken });
           }
+
+          // Restore active trip if one exists
+          try {
+            const activeRes = await api.getActiveTrip();
+            if (activeRes && activeRes.active && activeRes.trip) {
+              console.log('[Driver] Restored active trip:', activeRes.trip.id, activeRes.trip.status);
+              setTripState(activeRes.trip);
+              if (activeRes.trip.status === 'ACCEPTED') {
+                setView('EN_ROUTE_PICKUP');
+              } else if (activeRes.trip.status === 'IN_PROGRESS') {
+                setView('EN_ROUTE_DROPOFF');
+              } else {
+                setView('OFFLINE');
+              }
+            } else {
+              setView('OFFLINE');
+            }
+          } catch (e) {
+            setView('OFFLINE');
+          }
+
+          // Alert if driver missed profile completion or vehicle onboarding (guarded & debounced)
+          promptProfileCompletion(p);
         }
       } catch(e) {
         console.log('Auto-login failed:', e);
@@ -82,6 +216,12 @@ function MainApp({ navigation }) {
       }
     };
     initAuth();
+    return () => {
+      if (profileAlertTimerGlobal) {
+        clearTimeout(profileAlertTimerGlobal);
+        profileAlertTimerGlobal = null;
+      }
+    };
   }, []);
   
   useEffect(() => {
@@ -99,6 +239,8 @@ function MainApp({ navigation }) {
   const mapRef = useRef(null);
   const viewRef = useRef(view);
   useEffect(() => { viewRef.current = view; }, [view]);
+  const locationRef = useRef(location);
+  useEffect(() => { locationRef.current = location; }, [location]);
   const locSub = useRef(null);
 
   // ── Location tracking ───────────────────────────────
@@ -122,12 +264,9 @@ function MainApp({ navigation }) {
       
       // Explicit interval to guarantee Redis always gets the location every 5 seconds
       locSub.interval = setInterval(() => {
-        setLocation(currentLoc => {
-          if (socket && viewRef.current !== 'OFFLINE' && currentLoc.latitude) {
-            socket.emit('update_location', { lat: currentLoc.latitude, lng: currentLoc.longitude });
-          }
-          return currentLoc;
-        });
+        if (socket && viewRef.current !== 'OFFLINE' && locationRef.current?.latitude) {
+          socket.emit('update_location', { lat: locationRef.current.latitude, lng: locationRef.current.longitude });
+        }
       }, 5000);
       
     })();
@@ -159,17 +298,64 @@ function MainApp({ navigation }) {
          sendLocalPush('Trip Cancelled', 'The customer has cancelled the trip.');
       }
       setTripState(null);
+      setChatMessages([]);
+      setUnreadChatCount(0);
       setView(v => v !== 'AUTH' ? 'OFFLINE' : v);
     });
 
     socket.on('trip_completed_success', (data) => {
       setTripState(null);
+      setChatMessages([]);
+      setUnreadChatCount(0);
       setView('OFFLINE');
-      navigation.navigate('Earnings');
+      api.getWallet().then(w => setWallet(w)).catch(() => {});
+      navigation.navigate('Earnings', data || {});
     });
 
-    socket.on('awaiting_payment', () => {
-      Alert.alert('Awaiting Payment', 'Waiting for the customer to complete payment...');
+    socket.on('awaiting_payment', (data) => {
+      console.log('[Driver] awaiting_payment received:', data);
+      if (data) {
+        setTripState(prev => ({ ...prev, ...data }));
+      }
+      setView('AWAITING_PAYMENT');
+    });
+
+    socket.on('trip_restored', (trip) => {
+      console.log('[Driver] Trip restored via socket:', trip.id, trip.status);
+      setTripState(trip);
+      if (trip.status === 'ACCEPTED') {
+        setView('EN_ROUTE_PICKUP');
+      } else if (trip.status === 'IN_PROGRESS') {
+        setView('EN_ROUTE_DROPOFF');
+      }
+      api.getTripMessages(trip.id || trip.trip_id).then(msgs => {
+        if (Array.isArray(msgs) && msgs.length > 0) {
+          setChatMessages(msgs);
+        }
+      }).catch(() => {});
+    });
+
+    socket.on('new_message', (msg) => {
+      console.log('[Driver] new_message received:', msg);
+      setChatMessages(prev => {
+        if (prev.some(m => (m.id && m.id === msg.id) || (m.client_id && m.client_id === msg.client_id))) {
+          return prev;
+        }
+        return [...prev, msg];
+      });
+      if (viewRef.current !== 'CHAT') {
+        setUnreadChatCount(c => c + 1);
+        sendLocalPush(msg.sender_name || 'Rider', msg.text);
+      }
+    });
+
+    socket.on('message_sent_ack', (ack) => {
+      setChatMessages(prev => prev.map(m => {
+        if ((m.client_id && m.client_id === ack.client_id) || m.id === ack.client_id) {
+          return { ...m, id: ack.id, status: 'delivered' };
+        }
+        return m;
+      }));
     });
 
     socket.on('error', (data) => {
@@ -180,6 +366,10 @@ function MainApp({ navigation }) {
       socket.off('trip_requested');
       socket.off('trip_cleared');
       socket.off('trip_completed_success');
+      socket.off('awaiting_payment');
+      socket.off('trip_restored');
+      socket.off('new_message');
+      socket.off('message_sent_ack');
       socket.off('error');
     };
   }, []);
@@ -187,8 +377,12 @@ function MainApp({ navigation }) {
   useEffect(() => {
     
     const sub = DeviceEventEmitter.addListener('DO_LOGOUT', async () => {
-      
-      
+      if (profileAlertTimerGlobal) {
+        clearTimeout(profileAlertTimerGlobal);
+        profileAlertTimerGlobal = null;
+      }
+      hasPromptedProfileGlobal = false;
+      isProfileAlertShowingGlobal = false;
       await AsyncStorage.removeItem('userToken');
       setProfile(null);
       socket.disconnect();
@@ -234,19 +428,30 @@ function MainApp({ navigation }) {
     setView(next);
   };
 
-  const handleAccept = () => { socket.emit('accept_trip', { trip_id: tripState.trip_id, customer_id: tripState.customer_id }); setView('EN_ROUTE_PICKUP'); };
-  const handleDecline = () => { socket.emit('clear_trip'); setTripState(null); setView('ONLINE'); };
+  const handleAccept = () => {
+    setChatMessages([]);
+    setUnreadChatCount(0);
+    socket.emit('accept_trip', { trip_id: tripState.trip_id, customer_id: tripState.customer_id });
+    setView('EN_ROUTE_PICKUP');
+  };
+  const handleDecline = () => {
+    setChatMessages([]);
+    setUnreadChatCount(0);
+    socket.emit('clear_trip');
+    setTripState(null);
+    setView('ONLINE');
+  };
 
   const handleStatusUpdate = (status) => {
     console.log('[Driver] handleStatusUpdate called with status:', status);
     
     if (status === 'COMPLETED') {
+      setView('AWAITING_PAYMENT');
       socket.emit('complete_trip', { 
         trip_id: tripState?.trip_id || tripState?.id, 
         customer_id: tripState?.customer_id, 
         price: tripState?.price || 30000 
       });
-      // Wait for backend to send 'trip_completed_success' or 'error'
       return;
     }
 
@@ -323,7 +528,15 @@ function MainApp({ navigation }) {
 
         {isAuth && (
           <View style={StyleSheet.absoluteFill}>
-            <AuthScreen onLogin={async (token) => { socket.connect(); try { const p = await api.getProfile(); setProfile(p); } catch(e) {} setView('OFFLINE'); }} />
+            <AuthScreen onLogin={async (token) => {
+              socket.connect();
+              try {
+                const p = await api.getProfile();
+                setProfile(p);
+                promptProfileCompletion(p);
+              } catch(e) {}
+              setView('OFFLINE');
+            }} />
           </View>
         )}
 
@@ -349,13 +562,27 @@ function MainApp({ navigation }) {
         {isActiveTrip && (
           <ActiveTripScreen routeInfo={routeInfo}
             trip={{ ...tripState, status: view === 'EN_ROUTE_PICKUP' ? 'ACCEPTED' : 'IN_PROGRESS' }}
+            unreadCount={unreadChatCount}
             onStatusUpdate={handleStatusUpdate}
-            onChat={() => { setChatReturnView(view); setView('CHAT'); }}
-            onCall={() => {
-              if (tripState?.customer?.phone) {
-                Linking.openURL(`tel:${tripState.customer.phone}`);
-              } else {
+            onChat={() => { setChatReturnView(view); setUnreadChatCount(0); setView('CHAT'); }}
+            onCall={async () => {
+              const phone = tripState?.customer?.phone;
+              if (!phone) {
                 Alert.alert('Phone Unavailable', 'The customer has not provided a phone number.');
+                return;
+              }
+              const clean = phone.replace(/[^\d+]/g, '');
+              const url = `tel:${clean}`;
+              try {
+                const supported = await Linking.canOpenURL(url);
+                if (supported) {
+                  await Linking.openURL(url);
+                } else {
+                  Alert.alert('Call Not Supported', `Phone calls cannot be placed directly from this device or simulator.\n\nCustomer phone: ${phone}`);
+                }
+              } catch (err) {
+                console.warn('[Call Error]', err);
+                Alert.alert('Call Failed', `Could not open dialer for ${phone}`);
               }
             }}
           />
@@ -366,10 +593,79 @@ function MainApp({ navigation }) {
 
 
 
+        {view === 'AWAITING_PAYMENT' && (
+          <View style={StyleSheet.absoluteFill} pointerEvents="auto">
+            <View style={styles.awaitingOverlay}>
+              <View style={styles.awaitingCard}>
+                <View style={styles.awaitingSpinnerBox}>
+                  <ActivityIndicator size="large" color="#05A357" />
+                </View>
+                <Text style={styles.awaitingTitle}>Ride Ended</Text>
+                <Text style={styles.awaitingSub}>
+                  {(tripState?.payment_method || 'CASH').toUpperCase() === 'CASH'
+                    ? 'Passenger Paying Cash'
+                    : (tripState?.payment_method || 'CASH').toUpperCase() === 'STRIPE'
+                    ? 'Card Payment (Stripe)'
+                    : 'Mobile Payment (Flutterwave)'}
+                </Text>
+
+                <View style={styles.awaitingPriceBox}>
+                  <Text style={styles.awaitingPriceText}>
+                    {tripState?.currency === 'USD'
+                      ? `$${Number(tripState?.amount || tripState?.fare || tripState?.price || 3).toFixed(2)}`
+                      : `${Number(tripState?.amount || tripState?.fare || tripState?.price || 25000).toLocaleString()} GNF`}
+                  </Text>
+                </View>
+
+                <Text style={styles.awaitingNote}>
+                  {(tripState?.payment_method || 'CASH').toUpperCase() === 'CASH'
+                    ? 'Please collect the cash directly from the passenger, then tap below to confirm.'
+                    : 'The passenger is completing payment on their phone. This screen will automatically update once confirmed.'}
+                </Text>
+
+                <TouchableOpacity 
+                  style={styles.cashConfirmBtn}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    Alert.alert(
+                      "Cash Received",
+                      "Confirm that the passenger paid you in cash?",
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        { 
+                          text: "Yes, Confirm Cash", 
+                          onPress: () => {
+                            socket.emit('confirm_cash_payment', {
+                              trip_id: tripState?.trip_id || tripState?.id,
+                              customer_id: tripState?.customer_id
+                            });
+                          }
+                        }
+                      ]
+                    );
+                  }}
+                >
+                  <Text style={styles.cashConfirmBtnText}>
+                    {(tripState?.payment_method || 'CASH').toUpperCase() === 'CASH'
+                      ? 'Confirm Cash Received'
+                      : 'Passenger Paid Cash Instead'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* CHAT OVERLAY */}
         {view === 'CHAT' && tripState && (
           <View style={[StyleSheet.absoluteFill, { zIndex: 9999, elevation: 99 }]} pointerEvents="auto">
-            <ChatScreen role="DRIVER" trip={tripState} onClose={() => setView(chatReturnView)} />
+            <ChatScreen 
+              role="DRIVER" 
+              trip={tripState} 
+              messages={chatMessages}
+              setMessages={setChatMessages}
+              onClose={() => setView(chatReturnView)} 
+            />
           </View>
         )}
 
@@ -414,6 +710,87 @@ const styles = StyleSheet.create({
   modalClose: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
   earningsAmount: { fontSize: 42, fontWeight: '900', color: '#05A357', marginBottom: 8 },
   earningsSub: { fontSize: 14, color: '#9CA3AF', textAlign: 'center' },
+
+  // Awaiting Payment Overlay
+  awaitingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    zIndex: 1000,
+    elevation: 1000,
+  },
+  awaitingCard: {
+    width: '100%',
+    backgroundColor: '#1E1E1E',
+    borderRadius: 24,
+    padding: 28,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  awaitingSpinnerBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(5,163,87,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  awaitingTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  awaitingSub: {
+    fontSize: 15,
+    color: '#9CA3AF',
+    marginBottom: 20,
+  },
+  awaitingPriceBox: {
+    backgroundColor: '#121212',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  awaitingPriceText: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#05A357',
+  },
+  awaitingNote: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 18,
+  },
+  cashConfirmBtn: {
+    backgroundColor: '#05A357',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    width: '100%',
+    alignItems: 'center',
+  },
+  cashConfirmBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
 });
 
 export default function App() {
@@ -429,6 +806,7 @@ export default function App() {
 
         <Stack.Screen name="Earnings" component={EarningsScreen} />
         <Stack.Screen name="ProfileDetail" component={ProfileScreen} />
+        <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Safety" component={SafetyScreen} />
         <Stack.Screen name="Preferences" component={PreferencesScreen} />
         <Stack.Screen name="Promo" component={PromoScreen} />

@@ -30,10 +30,15 @@ export default function HomeScreen({ onMenuPress, onSearchPress, onProfilePress,
         <TouchableOpacity style={styles.shadowWrapper} onPress={onProfilePress} activeOpacity={0.85}>
           <View style={styles.profileInner}>
             <BlurView intensity={80} tint="light" style={styles.profileBlur}>
-              <Image
-                source={{ uri: `https://api.dicebear.com/7.x/avataaars/png?seed=${profile?.first_name || 'User'}` }}
-                style={styles.avatar}
-              />
+              {profile?.profile_picture_url ? (
+                <Image source={{ uri: profile.profile_picture_url }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, { justifyContent: 'center', alignItems: 'center', backgroundColor: C.lux900 }]}>
+                  <Text style={{ fontSize: 14, fontWeight: '800', color: C.gold }}>
+                    {((profile?.first_name ? profile.first_name[0] : 'U') || 'U').toUpperCase()}
+                  </Text>
+                </View>
+              )}
               <Text style={styles.profileName}>{profile ? profile.first_name || 'User' : 'User'}</Text>
             </BlurView>
           </View>

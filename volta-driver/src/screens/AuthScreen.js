@@ -1,8 +1,9 @@
 import React, { useRef, useState } from 'react';
 import { Image, Alert,
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  Dimensions, Animated, KeyboardAvoidingView, Platform, ActivityIndicator
+  Dimensions, Animated, KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView, Keyboard
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, CheckCircle2, ArrowRight, Camera, FileText, Car, Briefcase } from 'lucide-react-native';
 import C from '../constants/colors';
 import * as ImagePicker from 'expo-image-picker';
@@ -13,6 +14,7 @@ const { width, height } = Dimensions.get('window');
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://163.245.215.14:8000';
 
 export default function AuthScreen({ onLogin }) {
+  const insets = useSafeAreaInsets();
   const opacity = useRef(new Animated.Value(1)).current;
   
   const [phone, setPhone] = useState('');
@@ -38,9 +40,16 @@ export default function AuthScreen({ onLogin }) {
       mediaTypes: 'images',
       allowsEditing: true,
       quality: 0.5,
+      base64: true,
     });
-    if (!result.canceled) {
-      setter(result.assets[0].uri);
+    if (!result.canceled && result.assets && result.assets[0]) {
+      const asset = result.assets[0];
+      setter({
+        uri: asset.uri,
+        base64: asset.base64,
+        name: asset.fileName || 'document.jpg',
+        type: asset.mimeType || 'image/jpeg',
+      });
     }
   };
 
@@ -76,24 +85,24 @@ export default function AuthScreen({ onLogin }) {
     }
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/v1/users/me`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await AsyncStorage.getItem('userToken')}` },
-        body: JSON.stringify({ first_name: firstName, last_name: lastName, email: email || null })
-      });
-      if (res.ok) {
-        setStep('OWNERSHIP');
-      } else {
-        setError('Failed to update profile');
+      await api.updateProfile({ first_name: firstName, last_name: lastName, email: email || null });
+      if (photoUri) {
+        try {
+          await api.uploadProfilePhoto(photoUri);
+        } catch (photoErr) {
+          console.log('[AUTH] Profile photo upload notice:', photoErr);
+        }
       }
+      setStep('OWNERSHIP');
     } catch(e) {
-      setError('Network error');
+      setError(e.message || 'Failed to update profile');
     } finally {
       setLoading(false);
     }
   };
 
   const verifyOTP = async () => {
+    Keyboard.dismiss();
     if (!otp || otp.length < 4) {
       setError('Enter the 4-digit OTP');
       return;
@@ -113,9 +122,7 @@ export default function AuthScreen({ onLogin }) {
         try {
             const prof = await api.getProfile();
             if (!prof.first_name || isApplying) {
-                if (!prof.first_name && !isApplying) {
-                    Alert.alert("Account Not Found", "This phone number isn't registered. Let's get you set up to drive!");
-                }
+                Keyboard.dismiss();
                 setStep('PROFILE');
                 return;
             }
@@ -146,26 +153,41 @@ export default function AuthScreen({ onLogin }) {
 
   const submitVehicle = async () => {
     if (!needsCompanyVehicle && (!carMake || !carPlate)) {
-      setError('Car make and plate are required');
+      setError('Car make and license plate are required');
       return;
     }
     if (!licenseUri) {
       setError('Driver license is required to proceed');
       return;
     }
+    if (!needsCompanyVehicle && !carteGrisUri) {
+      setError('Vehicle registration (Carte Grise) is required for personal vehicles');
+      return;
+    }
     setLoading(true); setError('');
     try {
-        const vType = needsCompanyVehicle ? 'COMPANY_PROVIDED' : carMake;
-        const vPlate = needsCompanyVehicle ? 'PENDING' : carPlate;
-        
-        await api.updateProfile({ vehicle_type: vType, license_plate: vPlate });
-        await api.uploadDocuments(photoUri, licenseUri, needsCompanyVehicle ? null : carteGrisUri);
+        if (needsCompanyVehicle) {
+          await api.updateProfile({
+            driver_category: 'COMPANY_CAR',
+            vehicle_type: 'Company Vehicle',
+            license_plate: 'PENDING ASSIGNMENT'
+          });
+          await api.uploadDocuments(photoUri, licenseUri, null);
+        } else {
+          await api.updateProfile({
+            driver_category: 'OWN_CAR',
+            vehicle_type: carMake,
+            vehicle_make: carMake,
+            license_plate: carPlate
+          });
+          await api.uploadDocuments(photoUri, licenseUri, carteGrisUri);
+        }
         
         Animated.timing(opacity, { toValue: 0, duration: 400, useNativeDriver: true }).start(async () => {
           onLogin(await AsyncStorage.getItem('userToken'));
         });
     } catch(e) {
-        setError(e.message || 'Failed to upload documents');
+        setError(e.message || 'Failed to complete setup');
     } finally {
         setLoading(false);
     }
@@ -173,10 +195,26 @@ export default function AuthScreen({ onLogin }) {
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, styles.container, { opacity }]}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.inner}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}>
-        <View style={styles.card}>
-          {step !== 'CHOICE' && (
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+        style={styles.inner}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
+      >
+        <ScrollView
+          style={{ width: '100%' }}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingTop: Math.max(30, insets.top + 16),
+              paddingBottom: Math.max(24, insets.bottom + 20)
+            }
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          <View style={styles.card}>
+            {step !== 'CHOICE' && (
             <TouchableOpacity style={{ marginBottom: 16 }} onPress={() => {
                 if (step === 'PHONE') setStep('CHOICE');
                 else if (step === 'OTP') setStep('PHONE');
@@ -223,7 +261,7 @@ export default function AuthScreen({ onLogin }) {
             <>
               <TouchableOpacity style={styles.uploadBtn} onPress={() => pickImage(setPhotoUri)}>
                 {photoUri ? (
-                    <Image source={{ uri: photoUri }} style={{ width: 100, height: 100, borderRadius: 50, marginBottom: 8 }} />
+                    <Image source={{ uri: photoUri?.uri || photoUri }} style={{ width: 100, height: 100, borderRadius: 50, marginBottom: 8 }} />
                 ) : <Camera color="#fff" size={32} style={{ marginBottom: 8 }} />}
                 <Text style={styles.uploadBtnText}>{photoUri ? 'Change Profile Photo' : 'Upload Profile Photo'}</Text>
                 {photoUri && <CheckCircle2 color="#05A357" size={20} style={{ position: 'absolute', top: 12, right: 12 }} />}
@@ -234,7 +272,6 @@ export default function AuthScreen({ onLogin }) {
                   style={styles.input}
                   value={firstName}
                   onChangeText={setFirstName}
-                  autoFocus
                   keyboardType="default"
                   placeholder="Sarah"
                   placeholderTextColor="rgba(245,247,250,0.4)"
@@ -291,7 +328,17 @@ export default function AuthScreen({ onLogin }) {
             </>
           ) : step === 'VEHICLE' ? (
             <>
-              {!needsCompanyVehicle && (
+              {needsCompanyVehicle ? (
+                <View style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', borderColor: 'rgba(212, 175, 55, 0.3)', borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 20 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 8 }}>
+                    <Briefcase color="#D4AF37" size={20} />
+                    <Text style={{ color: '#D4AF37', fontWeight: '700', fontSize: 15 }}>Company Fleet Program</Text>
+                  </View>
+                  <Text style={{ color: '#E5E7EB', fontSize: 13, lineHeight: 19 }}>
+                    You are applying for a company-provided car. No vehicle registration required. A company vehicle will be assigned to your account after administrative review.
+                  </Text>
+                </View>
+              ) : (
                 <>
                   <View style={styles.inputCard}>
                     <Text style={styles.inputLabel}>CAR MAKE & MODEL</Text>
@@ -325,7 +372,7 @@ export default function AuthScreen({ onLogin }) {
                   <FileText color="#9CA3AF" size={20} />
                   <Text style={styles.uploadBtnText}>{licenseUri ? 'Driver License Uploaded' : 'Upload Driver License'}</Text>
                 </View>
-                {licenseUri ? <Image source={{uri: licenseUri}} style={{width: 40, height: 30, borderRadius: 4}} /> : null}
+                {licenseUri ? <Image source={{uri: licenseUri?.uri || licenseUri}} style={{width: 40, height: 30, borderRadius: 4}} /> : null}
               </TouchableOpacity>
               
               {!needsCompanyVehicle && (
@@ -334,7 +381,7 @@ export default function AuthScreen({ onLogin }) {
                       <FileText color="#9CA3AF" size={20} />
                       <Text style={styles.uploadBtnText}>{carteGrisUri ? 'Vehicle Registration Uploaded' : 'Upload Vehicle Registration'}</Text>
                     </View>
-                    {carteGrisUri ? <Image source={{uri: carteGrisUri}} style={{width: 40, height: 30, borderRadius: 4}} /> : null}
+                    {carteGrisUri ? <Image source={{uri: carteGrisUri?.uri || carteGrisUri}} style={{width: 40, height: 30, borderRadius: 4}} /> : null}
                   </TouchableOpacity>
               )}
 
@@ -348,7 +395,12 @@ export default function AuthScreen({ onLogin }) {
               <TextInput 
                 style={styles.input} 
                 value={otp}
-                onChangeText={setOtp}
+                onChangeText={(val) => {
+                  setOtp(val);
+                  if (val.length === 4) {
+                    Keyboard.dismiss();
+                  }
+                }}
                 placeholder="Enter 4-digit OTP" 
                 placeholderTextColor="#9CA3AF" 
                 keyboardType="number-pad"
@@ -361,15 +413,17 @@ export default function AuthScreen({ onLogin }) {
             </>
           )}
         </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { position: 'absolute', top: 0, left: 0, width: width, height: height, backgroundColor: '#0B101E', justifyContent: 'center', alignItems: 'center', zIndex: 999, elevation: 99 },
-  inner: { width: '100%', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
-  card: { width: '100%', maxWidth: 400, backgroundColor: '#1A2133', borderRadius: 24, padding: 32, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  container: { position: 'absolute', top: 0, left: 0, width: width, height: height, backgroundColor: '#0B101E', zIndex: 999, elevation: 99 },
+  inner: { flex: 1, width: '100%' },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
+  card: { width: '100%', maxWidth: 420, backgroundColor: '#1A2133', borderRadius: 24, padding: 32, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   titleLeft: { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 8, marginTop: 12 },
   subLeft: { fontSize: 15, color: '#9CA3AF', marginBottom: 32 },
   errorText: { color: '#ef4444', marginBottom: 12, fontWeight: '600', fontSize: 14 },

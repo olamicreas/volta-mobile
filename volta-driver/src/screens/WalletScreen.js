@@ -1,11 +1,41 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { ArrowLeft, Wallet, Building, ChevronRight, Activity } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import C from '../constants/colors';
+import api from '../services/api';
 
 export default function WalletScreen({ navigation, wallet }) {
   const insets = useSafeAreaInsets();
+  const [walletData, setWalletData] = useState(wallet || null);
+  const [profile, setProfile] = useState(null);
+  const [tripsCount, setTripsCount] = useState(0);
+  const [loading, setLoading] = useState(!wallet);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadData() {
+      try {
+        const [w, p, trips] = await Promise.all([
+          api.getWallet().catch(() => null),
+          api.getProfile().catch(() => null),
+          api.getTrips().catch(() => [])
+        ]);
+        if (isMounted) {
+          if (w) setWalletData(w);
+          if (p) setProfile(p);
+          if (Array.isArray(trips)) setTripsCount(trips.length);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    loadData();
+    return () => { isMounted = false; };
+  }, []);
+
+  const balance = walletData?.balance ?? 0;
+  const currency = walletData?.currency || 'GNF';
   
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -20,53 +50,35 @@ export default function WalletScreen({ navigation, wallet }) {
       <ScrollView style={{ flex: 1 }}>
         <View style={styles.balanceSection}>
           <Text style={styles.balanceLabel}>Available Balance</Text>
-          <Text style={styles.balanceAmount}>2,450,000 GNF</Text>
+          <Text style={styles.balanceAmount}>{balance.toLocaleString()} {currency}</Text>
           <TouchableOpacity style={styles.cashOutBtn}>
             <Text style={styles.cashOutBtnText}>Cash Out Now</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>Weekly Summary</Text>
+        <Text style={styles.sectionTitle}>Summary</Text>
         <View style={styles.statsCard}>
           <View style={styles.statRow}>
             <View>
-              <Text style={styles.statLabel}>Trips</Text>
-              <Text style={styles.statVal}>34</Text>
+              <Text style={styles.statLabel}>Completed Trips</Text>
+              <Text style={styles.statVal}>{tripsCount}</Text>
             </View>
             <View>
-              <Text style={styles.statLabel}>Online Time</Text>
-              <Text style={styles.statVal}>28h 15m</Text>
+              <Text style={styles.statLabel}>Rating</Text>
+              <Text style={styles.statVal}>{(profile?.rating || 5.0).toFixed(1)} ★</Text>
             </View>
           </View>
-          <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginVertical: 16 }} />
-          <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <Activity size={20} color="#05A357" />
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>See Detailed Activity</Text>
-            </View>
-            <ChevronRight size={20} color="#A1A1AA" />
-          </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>Payout Methods</Text>
+        <Text style={styles.sectionTitle}>Payout Account</Text>
         <View style={styles.listGroup}>
-          <TouchableOpacity style={styles.row}>
+          <View style={styles.row}>
             <View style={styles.iconWrap}><Wallet size={20} color="#fff" /></View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.rowTitle}>Cinetpay Wallet</Text>
-              <Text style={styles.rowSub}>+224 620 000 000</Text>
+              <Text style={styles.rowTitle}>Registered Payout Phone</Text>
+              <Text style={styles.rowSub}>{profile?.phone_number || 'No phone registered'}</Text>
             </View>
-            <ChevronRight size={20} color="#A1A1AA" />
-          </TouchableOpacity>
-          <View style={styles.divider} />
-          <TouchableOpacity style={styles.row}>
-            <View style={styles.iconWrap}><Building size={20} color="#fff" /></View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.rowTitle}>Ecobank Guinea</Text>
-              <Text style={styles.rowSub}>**** 4567</Text>
-            </View>
-            <ChevronRight size={20} color="#A1A1AA" />
-          </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </View>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView, Image, KeyboardAvoidingView, Platform } from 'react-native';
 import { ArrowLeft, CreditCard, Smartphone, ShieldCheck } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import C from '../constants/colors';
@@ -18,7 +18,16 @@ export default function AddPaymentScreen({ navigation }) {
         <View style={{width: 40}} />
       </View>
 
-      <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
+      >
+        <ScrollView 
+          style={{ flex: 1, backgroundColor: '#F9FAFB' }}
+          contentContainerStyle={{ paddingBottom: Math.max(32, insets.bottom + 20) }}
+          keyboardShouldPersistTaps="handled"
+        >
         <View style={styles.tabs}>
           <TouchableOpacity style={[styles.tab, method === 'MOBILE' && styles.tabActive]} onPress={() => setMethod('MOBILE')}>
             <Smartphone size={20} color={method === 'MOBILE' ? '#fff' : C.gray500} />
@@ -75,7 +84,8 @@ export default function AddPaymentScreen({ navigation }) {
             </TouchableOpacity>
           </View>
         )}
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

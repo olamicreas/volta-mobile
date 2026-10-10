@@ -14,4 +14,5 @@ export default {
   gray200: '#E5E7EB',
   gray400: '#9CA3AF',
   gray500: '#6B7280',
+  API_BASE_URL: process.env.EXPO_PUBLIC_BACKEND_URL || 'http://163.245.215.14:8000',
 };

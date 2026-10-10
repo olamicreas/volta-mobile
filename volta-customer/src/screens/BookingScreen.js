@@ -16,31 +16,57 @@ const { width, height } = Dimensions.get('window');
 function SlideToBook({ vehicleName, onComplete }) {
   const pan = useRef(new Animated.Value(0)).current;
   const panValue = useRef(0);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
+  const [trackW, setTrackW] = useState(0);
+  const THUMB = 52;
+  const MAX = Math.max(1, trackW - THUMB - 12); // 6px padding each side
+  const maxRef = useRef(MAX);
+  maxRef.current = MAX;
+
+  useEffect(() => {
+    pan.flattenOffset();
+    pan.setValue(0);
+    panValue.current = 0;
+  }, [vehicleName]);
 
   useEffect(() => {
     const sub = pan.addListener(({ value }) => { panValue.current = value; });
     return () => pan.removeListener(sub);
   }, [pan]);
 
-  const [trackW, setTrackW] = useState(0);
-  const THUMB = 52;
-  const MAX = Math.max(1, trackW - THUMB - 12); // 6px padding each side
-
   const responder = useRef(PanResponder.create({
     onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 3,
     onPanResponderGrant: () => {
       pan.setOffset(panValue.current);
       pan.setValue(0);
     },
-    onPanResponderMove: Animated.event([null, { dx: pan }], { useNativeDriver: false }),
+    onPanResponderMove: (_, g) => {
+      const currentMax = maxRef.current || 200;
+      if (g.dx >= 0 && g.dx <= currentMax) {
+        pan.setValue(g.dx);
+      }
+    },
     onPanResponderRelease: (_, g) => {
       pan.flattenOffset();
-      if (g.dx >= MAX * 0.5 || panValue.current >= MAX * 0.5) {
-        onComplete();
-        Animated.spring(pan, { toValue: MAX, useNativeDriver: false }).start();
+      const currentMax = maxRef.current || 200;
+      const threshold = currentMax * 0.35;
+      if (g.dx >= threshold || panValue.current >= threshold) {
+        Animated.timing(pan, { toValue: currentMax, duration: 150, useNativeDriver: false }).start(() => {
+          if (onCompleteRef.current) {
+            onCompleteRef.current();
+          }
+          setTimeout(() => {
+            pan.setValue(0);
+            panValue.current = 0;
+          }, 800);
+        });
       } else {
-        Animated.spring(pan, { toValue: 0, useNativeDriver: false }).start();
+        Animated.spring(pan, { toValue: 0, useNativeDriver: false }).start(() => {
+          panValue.current = 0;
+        });
       }
     },
   })).current;
@@ -86,8 +112,7 @@ const VEHICLES_BASE = [
 
 export default function BookingScreen({ destination, onBack, onConfirm, onPaymentPress, routeInfo }) {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
-  const [paymentMethod, setPaymentMethod] = useState('cash');
-  const [preferredCurrency, setPreferredCurrency] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('FLUTTERWAVE'); // 'FLUTTERWAVE' | 'STRIPE' | 'CASH'
   const [selected, setSelected] = useState('Regular');
   const swipeAnim = useRef(new Animated.Value(0)).current;
 
@@ -108,9 +133,7 @@ export default function BookingScreen({ destination, onBack, onConfirm, onPaymen
     routeMeta = `~${mins} min · ${km} km`;
   }
 
-  
-  const isGuinea = routeInfo ? true : false;
-  const currency = preferredCurrency || (isGuinea ? 'GNF' : 'USD');
+  const currency = paymentMethod === 'STRIPE' ? 'USD' : 'GNF';
   const exchangeRate = 1 / 8500;
 
   const vehicles = VEHICLES_BASE.map(v => {
@@ -121,7 +144,7 @@ export default function BookingScreen({ destination, onBack, onConfirm, onPaymen
       price = v.base + (km * v.perKm) + (mins * v.perMin);
     }
     
-    // Always convert based on the currently active currency, not geography
+    // Always convert based on the currently active currency
     if (currency === 'GNF') {
       price = Math.max(v.base, Math.round(price / 500) * 500);
     } else {
@@ -132,39 +155,9 @@ export default function BookingScreen({ destination, onBack, onConfirm, onPaymen
 
   const current = vehicles.find(v => v.id === selected) || vehicles[1];
 
-
-
-  const handleConfirm = async () => {
-    if (paymentMethod === 'cash') {
-      onConfirm(current.label, current.price);
-      return;
-    }
-
-    try {
-      const amountInCents = currency === 'USD' ? Math.round(current.price * 100) : current.price;
-      const { clientSecret } = await api.createPaymentIntent(amountInCents, currency);
-
-      const { error: initError } = await initPaymentSheet({
-        merchantDisplayName: 'Volta',
-        paymentIntentClientSecret: clientSecret,
-      });
-
-      if (initError) {
-        Alert.alert('Payment Error', initError.message);
-        return;
-      }
-
-      const { error: presentError } = await presentPaymentSheet();
-      if (presentError) {
-        Alert.alert('Payment Error', presentError.message);
-      } else {
-        Alert.alert('Success', 'Your payment is confirmed!');
-        onConfirm(current.label, current.price);
-      }
-    } catch (e) {
-      Alert.alert('Payment Error', 'Could not initiate Stripe payment');
-      console.log(e);
-    }
+  const handleConfirm = () => {
+    // Payment method is locked in at booking; payment is processed upon trip completion
+    onConfirm(current.label, current.price, paymentMethod, currency);
   };
 
   return (
@@ -258,40 +251,47 @@ export default function BookingScreen({ destination, onBack, onConfirm, onPaymen
         </ScrollView>
         )}
 
-        {/* Payment & Currency row */}
+        {/* Payment Method selector row */}
         <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
           <TouchableOpacity style={[styles.payRow, { flex: 1, marginBottom: 0 }]} onPress={() => {
             Alert.alert(
               'Payment Method',
-              'Select how you would like to pay',
+              'Choose how you want to settle this trip at completion:',
               [
-                { text: 'Cash / Wallet', onPress: () => {
-                    setPaymentMethod('cash');
-                    setPreferredCurrency(isGuinea ? 'GNF' : 'USD');
-                  } 
+                { 
+                  text: 'Flutterwave (GNF Local)', 
+                  onPress: () => setPaymentMethod('FLUTTERWAVE')
                 },
-                { text: 'Credit Card (Stripe)', onPress: () => {
-                    setPaymentMethod('card');
-                    setPreferredCurrency('USD');
-                  } 
+                { 
+                  text: 'Stripe Card (USD)', 
+                  onPress: () => setPaymentMethod('STRIPE')
+                },
+                { 
+                  text: 'Cash to Driver (GNF)', 
+                  onPress: () => setPaymentMethod('CASH')
                 },
                 { text: 'Cancel', style: 'cancel' }
               ]
             );
           }}>
-          <View style={{ backgroundColor: paymentMethod === 'card' ? C.gold : C.lux100, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, marginRight: 10 }}>
-            <Text style={{ color: C.lux900, fontSize: 10, fontWeight: '800' }}>
-              {paymentMethod === 'card' ? 'CREDIT CARD' : 'CASH / WALLET'}
+          <View style={{ 
+            backgroundColor: paymentMethod === 'STRIPE' ? '#6366f1' : paymentMethod === 'FLUTTERWAVE' ? '#f59e0b' : C.gold, 
+            paddingHorizontal: 8, 
+            paddingVertical: 4, 
+            borderRadius: 6, 
+            marginRight: 10 
+          }}>
+            <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>
+              {paymentMethod === 'STRIPE' ? 'STRIPE (USD)' : paymentMethod === 'FLUTTERWAVE' ? 'FLUTTERWAVE (GNF)' : 'CASH (GNF)'}
             </Text>
           </View>
           <Text style={styles.payLabel}>Payment</Text>
           <ChevronRight size={18} color={C.gray400} />
         </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.payRow, { paddingHorizontal: 12, marginBottom: 0 }]} onPress={() => setPreferredCurrency(currency === 'GNF' ? 'USD' : 'GNF')}>
+          <View style={[styles.payRow, { paddingHorizontal: 12, marginBottom: 0 }]}>
             <Text style={{ color: C.lux900, fontWeight: '800', fontSize: 13 }}>{currency}</Text>
-            <ChevronRight size={14} color={C.gray400} style={{ marginLeft: 4 }} />
-          </TouchableOpacity>
+          </View>
         </View>
 
         {/* Slide to book */}

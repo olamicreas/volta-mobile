@@ -10,6 +10,15 @@ import C from '../constants/colors';
 function SlideToAction({ actionText, onComplete }) {
   const pan = useRef(new Animated.Value(0)).current;
   const panValue = useRef(0);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
+  const [trackW, setTrackW] = useState(0);
+  const THUMB = 56;
+  const PADDING = 6;
+  const MAX = Math.max(1, trackW - THUMB - (PADDING * 2));
+  const maxRef = useRef(MAX);
+  maxRef.current = MAX;
 
   useEffect(() => {
     pan.flattenOffset();
@@ -22,26 +31,37 @@ function SlideToAction({ actionText, onComplete }) {
     return () => pan.removeListener(sub);
   }, [pan]);
 
-  const [trackW, setTrackW] = useState(0);
-  const THUMB = 56;
-  const PADDING = 6;
-  const MAX = Math.max(1, trackW - THUMB - (PADDING * 2));
-
   const panResponder = useRef(PanResponder.create({
     onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 3,
     onPanResponderGrant: () => {
       pan.setOffset(panValue.current);
       pan.setValue(0);
     },
-    onPanResponderMove: Animated.event([null, { dx: pan }], { useNativeDriver: false }),
+    onPanResponderMove: (_, g) => {
+      const currentMax = maxRef.current || 200;
+      if (g.dx >= 0 && g.dx <= currentMax) {
+        pan.setValue(g.dx);
+      }
+    },
     onPanResponderRelease: (_, g) => {
       pan.flattenOffset();
-      if (g.dx >= MAX * 0.5 || panValue.current >= MAX * 0.5) {
-        onComplete();
-        Animated.spring(pan, { toValue: MAX, useNativeDriver: false }).start();
+      const currentMax = maxRef.current || 200;
+      const threshold = currentMax * 0.35;
+      if (g.dx >= threshold || panValue.current >= threshold) {
+        Animated.timing(pan, { toValue: currentMax, duration: 150, useNativeDriver: false }).start(() => {
+          if (onCompleteRef.current) {
+            onCompleteRef.current();
+          }
+          setTimeout(() => {
+            pan.setValue(0);
+            panValue.current = 0;
+          }, 800);
+        });
       } else {
-        Animated.spring(pan, { toValue: 0, useNativeDriver: false }).start();
+        Animated.spring(pan, { toValue: 0, useNativeDriver: false }).start(() => {
+          panValue.current = 0;
+        });
       }
     },
   })).current;
@@ -81,19 +101,22 @@ const { width, height } = Dimensions.get('window');
 
 import { useNavigation } from '@react-navigation/native';
 
-export default function ActiveTripScreen({ trip, onStatusUpdate, onChat, onCall }) {
+export default function ActiveTripScreen({ trip, onStatusUpdate, onChat, onCall, unreadCount = 0 }) {
   const navigation = useNavigation();
   const status = trip?.status || 'ACCEPTED';
   const customerName = trip?.customer?.name || 'Rider';
 
   const isPickup = status === 'ACCEPTED' || status === 'ARRIVING';
   
-  const navText = isPickup ? "In 500 feet, turn right on 5th Ave" : "In 2 miles, take exit 4A";
+  const navText = isPickup 
+    ? (trip?.pickup?.name ? `Head to ${trip.pickup.name}` : "En route to passenger") 
+    : (trip?.destination?.name ? `Head to ${trip.destination.name}` : "En route to destination");
   const titleText = isPickup ? `Picking up ${customerName}` : `Driving ${customerName}`;
   const actionText = isPickup ? "Slide to Arrive" : "Slide to Complete";
-  const etaString = isPickup ? '3 min away' : '12 min to destination';
+  const etaString = isPickup ? 'Arriving soon' : 'En route to dropoff';
 
   const handleComplete = () => {
+    console.log('[ActiveTripScreen] handleComplete fired! isPickup:', isPickup, 'status:', status);
     if (isPickup) {
       onStatusUpdate('ARRIVED');
     } else {
@@ -105,7 +128,7 @@ export default function ActiveTripScreen({ trip, onStatusUpdate, onChat, onCall 
     <View style={styles.container} pointerEvents="box-none">
       
       {/* Top Navigation Banner */}
-      <View style={styles.navHeader}>
+      <View style={styles.navHeader} pointerEvents="auto">
         <View style={styles.navIconBox}>
           <CornerUpRight size={24} color="#fff" />
         </View>
@@ -113,7 +136,7 @@ export default function ActiveTripScreen({ trip, onStatusUpdate, onChat, onCall 
       </View>
 
       {/* Bottom Sheet */}
-      <View style={styles.bottomSheet}>
+      <View style={styles.bottomSheet} pointerEvents="auto">
         <View style={styles.dragHandle} />
         
         <View style={styles.sheetTop}>
@@ -123,7 +146,14 @@ export default function ActiveTripScreen({ trip, onStatusUpdate, onChat, onCall 
 
         <View style={styles.actionsRow}>
           <TouchableOpacity style={styles.actionBtn} onPress={onChat} activeOpacity={0.8}>
-            <MessageSquare size={20} color="#fff" />
+            <View style={{ position: 'relative' }}>
+              <MessageSquare size={20} color="#fff" />
+              {unreadCount > 0 && (
+                <View style={styles.chatBadge}>
+                  <Text style={styles.chatBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
+            </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} activeOpacity={0.8} onPress={onCall}>
             <Phone size={20} color="#fff" />
@@ -168,4 +198,7 @@ const styles = StyleSheet.create({
   slideFill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: C.brand, borderRadius: 34 },
   slideText: { position: 'absolute', width: '100%', textAlign: 'center', color: '#fff', fontWeight: '700', fontSize: 18, zIndex: 1 },
   slideThumb: { width: 56, height: 56, borderRadius: 28, backgroundColor: C.brand, alignItems: 'center', justifyContent: 'center', position: 'absolute', left: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 4, zIndex: 2 },
+
+  chatBadge: { position: 'absolute', top: -6, right: -10, backgroundColor: '#EF4444', borderRadius: 9, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderWidth: 1.5, borderColor: '#1E1E1E' },
+  chatBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
 });

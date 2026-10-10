@@ -18,12 +18,17 @@ export default function ProfileScreen({ onClose, profile }) {
           </TouchableOpacity>
         </View>
         <View style={{ alignItems: 'center', paddingVertical: 28 }}>
-          <Image
-            source={{ uri: 'https://api.dicebear.com/7.x/avataaars/png?seed=James' }}
-            style={styles.profileAvatar}
-          />
-          <Text style={styles.profileName}>{profile ? `${profile.first_name || 'James'} ${profile.last_name || ''}` : 'James Carter'}</Text>
-          <Text style={styles.profilePhone}>{profile ? profile.phone_number : '+224 555 019 8273'}</Text>
+          {profile?.profile_picture_url ? (
+            <Image source={{ uri: profile.profile_picture_url }} style={styles.profileAvatar} />
+          ) : (
+            <View style={[styles.profileAvatar, { justifyContent: 'center', alignItems: 'center', backgroundColor: C.lux900 }]}>
+              <Text style={{ fontSize: 32, fontWeight: '800', color: C.gold }}>
+                {((profile?.first_name ? profile.first_name[0] : 'U') || 'U').toUpperCase()}
+              </Text>
+            </View>
+          )}
+          <Text style={styles.profileName}>{profile ? `${profile.first_name || 'Valued'} ${profile.last_name || 'Member'}` : 'Volta Member'}</Text>
+          <Text style={styles.profilePhone}>{profile ? profile.phone_number : ''}</Text>
           <View style={styles.profileBadge}>
             <Text style={styles.profileBadgeText}>Volta Black Member</Text>
           </View>

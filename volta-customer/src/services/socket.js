@@ -13,29 +13,40 @@ class SocketService {
     const token = await AsyncStorage.getItem('userToken');
     if (!token) return;
 
-    this.socket = new WebSocket(`${WS_URL}/ws?token=${token}`);
+    if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
+      console.log('[WebSocket] Already connected or connecting');
+      return;
+    }
 
-    this.socket.onopen = () => {
-      console.log('[WebSocket] Connected');
-    };
+    try {
+      this.socket = new WebSocket(`${WS_URL}/ws?token=${token}`);
 
-    this.socket.onmessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data);
-        const { event, data } = msg;
-        if (this.listeners[event]) {
-          this.listeners[event].forEach(cb => cb(data));
+      this.socket.onopen = () => {
+        console.log('[WebSocket] Connected');
+      };
+
+      this.socket.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          const { event, data } = msg;
+          console.log('[WebSocket] Received event:', event);
+          if (this.listeners[event]) {
+            this.listeners[event].forEach(cb => cb(data));
+          }
+        } catch (err) {
+          console.error('[WebSocket] Parse error:', err);
         }
-      } catch (err) {
-        console.error('[WebSocket] Parse error:', err);
-      }
-    };
+      };
 
-    this.socket.onclose = (e) => {
-      console.log('[WebSocket] Disconnected:', e.reason);
-      // Auto reconnect
+      this.socket.onclose = (e) => {
+        console.log('[WebSocket] Disconnected:', e.reason);
+        this.socket = null;
+        setTimeout(() => this.connect(), 3000);
+      };
+    } catch (err) {
+      console.error('[WebSocket] Connect error:', err);
       setTimeout(() => this.connect(), 3000);
-    };
+    }
   }
 
   disconnect() { if (this.socket) { this.socket.close(); this.socket = null; } }

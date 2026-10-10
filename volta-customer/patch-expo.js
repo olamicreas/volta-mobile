@@ -49,8 +49,40 @@ const patchJavaScriptPromise = (filePath) => {
   }
 }
 
+const patchConvertFormData = (filePath) => {
+  if (fs.existsSync(filePath)) {
+    let content = fs.readFileSync(filePath, 'utf8');
+    const target = "throw new Error('Unsupported FormDataPart implementation');";
+    const replacement = `if (typeof entry === 'object' && entry != null && 'uri' in (entry as any) && typeof (entry as any).uri === 'string') {
+      const fileUri = (entry as any).uri as string;
+      try {
+        const res = await globalThis.fetch(fileUri);
+        results.push(new Uint8Array(await res.arrayBuffer()));
+      } catch {
+        const bytes = await new Promise<Uint8Array>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.responseType = 'arraybuffer';
+          xhr.onload = () => resolve(new Uint8Array(xhr.response as ArrayBuffer));
+          xhr.onerror = reject;
+          xhr.open('GET', fileUri, true);
+          xhr.send(null);
+        });
+        results.push(bytes);
+      }
+    } else {
+      throw new Error('Unsupported FormDataPart implementation');
+    }`;
+    if (content.includes(target) && !content.includes("'uri' in (entry as any)")) {
+      content = content.replace(target, replacement);
+      fs.writeFileSync(filePath, content);
+      console.log(`Patched ${filePath} - Added uri support to convertFormDataAsync`);
+    }
+  }
+};
+
 const appDir = __dirname;
 patchRuntimeScheduler(path.join(appDir, 'node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI-Cxx/include/RuntimeScheduler.h'));
 patchPackageSwift(path.join(appDir, 'node_modules/expo-modules-jsi/apple/Package.swift'));
 patchJavaScriptRuntime(path.join(appDir, 'node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptRuntime.swift'));
 patchJavaScriptPromise(path.join(appDir, 'node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptPromise.swift'));
+patchConvertFormData(path.join(appDir, 'node_modules/expo/src/winter/fetch/convertFormData.ts'));

@@ -15,11 +15,8 @@ class SocketService {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) return;
 
-      // Close any existing connection first
-      if (this.socket) {
-        this._intentionalClose = true;
-        this.socket.close();
-        this.socket = null;
+      if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
+        return;
       }
 
       this._intentionalClose = false;
@@ -76,7 +73,21 @@ class SocketService {
 
   emit(event, data) {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      console.log('[WebSocket] Emitting:', event, data);
       this.socket.send(JSON.stringify({ event, data }));
+    } else {
+      console.warn('[WebSocket] Cannot emit, socket not open. State:', this.socket ? this.socket.readyState : 'null', 'Event:', event);
+      // Attempt reconnect if socket is null or closed
+      if (!this.socket || this.socket.readyState === WebSocket.CLOSED) {
+        this.connect().then(() => {
+          setTimeout(() => {
+            if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+              console.log('[WebSocket] Re-emitting after reconnect:', event);
+              this.socket.send(JSON.stringify({ event, data }));
+            }
+          }, 500);
+        });
+      }
     }
   }
 }
