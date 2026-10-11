@@ -166,9 +166,9 @@ export default function AuthScreen({ onLogin }) {
             styles.scrollContent,
             {
               paddingTop: keyboardVisible
-                ? Math.max(16, insets.top + 8)
+                ? Math.max(38, insets.top + 24)
                 : Math.max(30, insets.top + 16),
-              paddingBottom: Math.max(24, insets.bottom + 20) + (keyboardVisible ? (Platform.OS === 'android' ? (keyboardHeight || 280) + 40 : 40) : 0),
+              paddingBottom: Math.max(24, insets.bottom + 20) + (keyboardVisible ? (Platform.OS === 'android' ? Math.round((keyboardHeight || 280) * 0.45) : 30) : 0),
               justifyContent: keyboardVisible ? 'flex-start' : 'center',
             }
           ]}
@@ -183,16 +183,16 @@ export default function AuthScreen({ onLogin }) {
                 backgroundColor: '#000',
                 overflow: 'hidden',
                 padding: 0,
-                width: keyboardVisible ? 54 : 80,
-                height: keyboardVisible ? 54 : 80,
-                borderRadius: keyboardVisible ? 16 : 24,
-                marginBottom: keyboardVisible ? 10 : 28,
+                width: keyboardVisible ? 64 : 80,
+                height: keyboardVisible ? 64 : 80,
+                borderRadius: keyboardVisible ? 18 : 24,
+                marginBottom: keyboardVisible ? 16 : 28,
               }
             ]}>
               <RNImage source={require('../../assets/icon.png')} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
             </View>
 
-            <Text style={[styles.logo, keyboardVisible && { fontSize: 28, marginBottom: 4 }]}>Volta</Text>
+            <Text style={[styles.logo, keyboardVisible && { fontSize: 32, marginBottom: 6 }]}>Volta</Text>
             {!keyboardVisible && (
               <Text style={styles.tagline}>The luxury ride experience.</Text>
             )}

@@ -32,7 +32,7 @@
           "apiKey": "DUMMY_KEY_TO_PREVENT_CRASH"
         }
       },
-      "versionCode": 63
+      "versionCode": 64
     },
     "web": {
       "favicon": "./assets/favicon.png"
