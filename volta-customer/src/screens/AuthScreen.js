@@ -19,6 +19,29 @@ const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://163.245.215.14:80
 export default function AuthScreen({ onLogin }) {
   const insets = useSafeAreaInsets();
   const opacity = useRef(new Animated.Value(1)).current;
+  const scrollViewRef = useRef(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  React.useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardVisible(true);
+      const kh = e?.endCoordinates?.height || 280;
+      setKeyboardHeight(kh);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardVisible(false);
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
   
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
@@ -137,12 +160,16 @@ export default function AuthScreen({ onLogin }) {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
       >
         <ScrollView
+          ref={scrollViewRef}
           style={{ width: '100%' }}
           contentContainerStyle={[
             styles.scrollContent,
             {
-              paddingTop: Math.max(30, insets.top + 16),
-              paddingBottom: Math.max(24, insets.bottom + 20)
+              paddingTop: keyboardVisible
+                ? Math.max(16, insets.top + 8)
+                : Math.max(30, insets.top + 16),
+              paddingBottom: Math.max(24, insets.bottom + 20) + (keyboardVisible ? (Platform.OS === 'android' ? (keyboardHeight || 280) + 40 : 40) : 0),
+              justifyContent: keyboardVisible ? 'flex-start' : 'center',
             }
           ]}
           keyboardShouldPersistTaps="handled"
@@ -150,125 +177,143 @@ export default function AuthScreen({ onLogin }) {
           bounces={false}
         >
           <View style={styles.card}>
-            <View style={[styles.iconBox, { backgroundColor: '#000', overflow: 'hidden', padding: 0 }]}>
+            <View style={[
+              styles.iconBox,
+              {
+                backgroundColor: '#000',
+                overflow: 'hidden',
+                padding: 0,
+                width: keyboardVisible ? 54 : 80,
+                height: keyboardVisible ? 54 : 80,
+                borderRadius: keyboardVisible ? 16 : 24,
+                marginBottom: keyboardVisible ? 10 : 28,
+              }
+            ]}>
               <RNImage source={require('../../assets/icon.png')} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
             </View>
 
-          <Text style={styles.logo}>Volta</Text>
-          <Text style={styles.tagline}>The luxury ride experience.</Text>
+            <Text style={[styles.logo, keyboardVisible && { fontSize: 28, marginBottom: 4 }]}>Volta</Text>
+            {!keyboardVisible && (
+              <Text style={styles.tagline}>The luxury ride experience.</Text>
+            )}
 
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-          {step === 'PHONE' ? (
-            <>
-              <View style={styles.inputCard}>
-                <Text style={styles.inputLabel}>PHONE NUMBER</Text>
-                <TextInput
-                  style={styles.input}
-                  value={phone}
-                  onChangeText={setPhone}
-                  keyboardType="phone-pad"
-                  placeholder="e.g. +224 620 000 000"
-                  placeholderTextColor="rgba(245,247,250,0.4)"
-                  selectionColor={C.gold}
-                />
-              </View>
+            {step === 'PHONE' ? (
+              <>
+                <View style={styles.inputCard}>
+                  <Text style={styles.inputLabel}>PHONE NUMBER</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={phone}
+                    onChangeText={setPhone}
+                    onFocus={() => setKeyboardVisible(true)}
+                    keyboardType="phone-pad"
+                    placeholder="e.g. +224 620 000 000"
+                    placeholderTextColor="rgba(245,247,250,0.4)"
+                    selectionColor={C.gold}
+                  />
+                </View>
 
-              <TouchableOpacity style={styles.btn} onPress={requestOTP} disabled={loading} activeOpacity={0.88}>
-                {loading ? <ActivityIndicator color={C.lux900} /> : (
-                  <>
-                    <Text style={styles.btnText}>Continue</Text>
-                    <ArrowRight color={C.lux900} size={20} strokeWidth={2.5} />
-                  </>
-                )}
-              </TouchableOpacity>
-            </>
-          
-          ) : step === 'PROFILE' ? (
-            <>
-              <View style={styles.inputCard}>
-                <Text style={styles.inputLabel}>FIRST NAME</Text>
-                <TextInput
-                  style={styles.input}
-                  value={firstName}
-                  onChangeText={setFirstName}
-                  keyboardType="default"
-                  placeholder="James"
-                  placeholderTextColor="rgba(245,247,250,0.4)"
-                  selectionColor={C.gold}
-                />
-              </View>
-              <View style={styles.inputCard}>
-                <Text style={styles.inputLabel}>LAST NAME</Text>
-                <TextInput
-                  style={styles.input}
-                  value={lastName}
-                  onChangeText={setLastName}
-                  keyboardType="default"
-                  placeholder="Carter"
-                  placeholderTextColor="rgba(245,247,250,0.4)"
-                  selectionColor={C.gold}
-                />
-              </View>
+                <TouchableOpacity style={styles.btn} onPress={requestOTP} disabled={loading} activeOpacity={0.88}>
+                  {loading ? <ActivityIndicator color={C.lux900} /> : (
+                    <>
+                      <Text style={styles.btnText}>Continue</Text>
+                      <ArrowRight color={C.lux900} size={20} strokeWidth={2.5} />
+                    </>
+                  )}
+                </TouchableOpacity>
+              </>
+            
+            ) : step === 'PROFILE' ? (
+              <>
+                <View style={styles.inputCard}>
+                  <Text style={styles.inputLabel}>FIRST NAME</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    onFocus={() => setKeyboardVisible(true)}
+                    keyboardType="default"
+                    placeholder="James"
+                    placeholderTextColor="rgba(245,247,250,0.4)"
+                    selectionColor={C.gold}
+                  />
+                </View>
+                <View style={styles.inputCard}>
+                  <Text style={styles.inputLabel}>LAST NAME</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={lastName}
+                    onChangeText={setLastName}
+                    onFocus={() => setKeyboardVisible(true)}
+                    keyboardType="default"
+                    placeholder="Carter"
+                    placeholderTextColor="rgba(245,247,250,0.4)"
+                    selectionColor={C.gold}
+                  />
+                </View>
 
-              
-              <View style={styles.inputCard}>
-                <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
-                <TextInput
-                  style={styles.input}
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="name@example.com"
-                  placeholderTextColor="rgba(245,247,250,0.4)"
-                  selectionColor={'#D4AF37'}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              </View>
+                
+                <View style={styles.inputCard}>
+                  <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={email}
+                    onChangeText={setEmail}
+                    onFocus={() => setKeyboardVisible(true)}
+                    placeholder="name@example.com"
+                    placeholderTextColor="rgba(245,247,250,0.4)"
+                    selectionColor={'#D4AF37'}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
 
-              <TouchableOpacity style={styles.btn} onPress={submitProfile} disabled={loading} activeOpacity={0.88}>
-                {loading ? <ActivityIndicator color={C.lux900} /> : (
-                  <>
-                    <Text style={styles.btnText}>Complete Profile</Text>
-                    <ArrowRight color={C.lux900} size={20} strokeWidth={2.5} />
-                  </>
-                )}
-              </TouchableOpacity>
-            </>
-          ) : (
+                <TouchableOpacity style={styles.btn} onPress={submitProfile} disabled={loading} activeOpacity={0.88}>
+                  {loading ? <ActivityIndicator color={C.lux900} /> : (
+                    <>
+                      <Text style={styles.btnText}>Complete Profile</Text>
+                      <ArrowRight color={C.lux900} size={20} strokeWidth={2.5} />
+                    </>
+                  )}
+                </TouchableOpacity>
+              </>
+            ) : (
 
-            <>
-              <View style={styles.inputCard}>
-                <Text style={styles.inputLabel}>ENTER OTP CODE</Text>
-                <TextInput
-                  style={styles.input}
-                  value={otp}
-                  onChangeText={(val) => {
-                    setOtp(val);
-                    if (val.length === 4) {
-                      Keyboard.dismiss();
-                    }
-                  }}
-                  keyboardType="number-pad"
-                  placeholder="0000"
-                  maxLength={4}
-                  placeholderTextColor="rgba(245,247,250,0.4)"
-                  selectionColor={C.gold}
-                  autoFocus
-                />
-              </View>
+              <>
+                <View style={styles.inputCard}>
+                  <Text style={styles.inputLabel}>ENTER OTP CODE</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={otp}
+                    onChangeText={(val) => {
+                      setOtp(val);
+                      if (val.length === 4) {
+                        Keyboard.dismiss();
+                      }
+                    }}
+                    onFocus={() => setKeyboardVisible(true)}
+                    keyboardType="number-pad"
+                    placeholder="0000"
+                    maxLength={4}
+                    placeholderTextColor="rgba(245,247,250,0.4)"
+                    selectionColor={C.gold}
+                    autoFocus
+                  />
+                </View>
 
-              <TouchableOpacity style={styles.btn} onPress={verifyOTP} disabled={loading} activeOpacity={0.88}>
-                {loading ? <ActivityIndicator color={C.lux900} /> : (
-                  <>
-                    <Text style={styles.btnText}>Verify & Login</Text>
-                    <CheckCircle2 color={C.lux900} size={20} strokeWidth={2.5} />
-                  </>
-                )}
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
+                <TouchableOpacity style={styles.btn} onPress={verifyOTP} disabled={loading} activeOpacity={0.88}>
+                  {loading ? <ActivityIndicator color={C.lux900} /> : (
+                    <>
+                      <Text style={styles.btnText}>Verify & Login</Text>
+                      <CheckCircle2 color={C.lux900} size={20} strokeWidth={2.5} />
+                    </>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </Animated.View>
@@ -276,9 +321,20 @@ export default function AuthScreen({ onLogin }) {
 }
 
 const styles = StyleSheet.create({
-  container: { position: 'absolute', top: 0, left: 0, width: width, height: height, backgroundColor: C.lux900, zIndex: 999, elevation: 99 },
+  container: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+    backgroundColor: C.lux900,
+    zIndex: 999,
+    elevation: 99
+  },
   inner: { flex: 1, width: '100%' },
-  scrollContent: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },
+  scrollContent: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 24 },
   card: { width: '100%', maxWidth: 420, alignItems: 'center' },
   iconBox: { width: 80, height: 80, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 28, shadowColor: C.gold, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 20, elevation: 12 },
   logo: { fontSize: 40, fontWeight: '800', color: '#fff', letterSpacing: 2, marginBottom: 8 },

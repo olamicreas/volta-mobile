@@ -16,6 +16,29 @@ const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://163.245.215.14:80
 export default function AuthScreen({ onLogin }) {
   const insets = useSafeAreaInsets();
   const opacity = useRef(new Animated.Value(1)).current;
+  const scrollViewRef = useRef(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  React.useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardVisible(true);
+      const kh = e?.endCoordinates?.height || 280;
+      setKeyboardHeight(kh);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardVisible(false);
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
   
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
@@ -201,21 +224,25 @@ export default function AuthScreen({ onLogin }) {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
       >
         <ScrollView
+          ref={scrollViewRef}
           style={{ width: '100%' }}
           contentContainerStyle={[
             styles.scrollContent,
             {
-              paddingTop: Math.max(30, insets.top + 16),
-              paddingBottom: Math.max(24, insets.bottom + 20)
+              paddingTop: keyboardVisible
+                ? Math.max(16, insets.top + 8)
+                : Math.max(30, insets.top + 16),
+              paddingBottom: Math.max(24, insets.bottom + 20) + (keyboardVisible ? (Platform.OS === 'android' ? (keyboardHeight || 280) + 40 : 40) : 0),
+              justifyContent: keyboardVisible ? 'flex-start' : 'center',
             }
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
-          <View style={styles.card}>
+          <View style={[styles.card, keyboardVisible && { padding: 20 }]}>
             {step !== 'CHOICE' && (
-            <TouchableOpacity style={{ marginBottom: 16 }} onPress={() => {
+            <TouchableOpacity style={{ marginBottom: keyboardVisible ? 8 : 16 }} onPress={() => {
                 if (step === 'PHONE') setStep('CHOICE');
                 else if (step === 'OTP') setStep('PHONE');
                 else if (step === 'PROFILE') setStep('PHONE');
@@ -225,11 +252,25 @@ export default function AuthScreen({ onLogin }) {
               <ArrowLeft color="#fff" size={24} />
             </TouchableOpacity>
           )}
-          <View style={{ alignItems: 'center', marginTop: step === 'CHOICE' ? 16 : 0, marginBottom: 12 }}>
-             <Image source={require('../../assets/icon.png')} style={{ width: 80, height: 80, borderRadius: 20 }} resizeMode="contain" />
+          <View style={{ alignItems: 'center', marginTop: step === 'CHOICE' ? 16 : 0, marginBottom: keyboardVisible ? 8 : 12 }}>
+             <Image
+               source={require('../../assets/icon.png')}
+               style={{
+                 width: keyboardVisible ? 52 : 80,
+                 height: keyboardVisible ? 52 : 80,
+                 borderRadius: keyboardVisible ? 14 : 20
+               }}
+               resizeMode="contain"
+             />
           </View>
-          <Text style={styles.titleLeft}>{step === 'CHOICE' ? 'Welcome to Volta' : step === 'OWNERSHIP' ? 'Vehicle Setup' : step === 'VEHICLE' ? 'Final Details' : isApplying ? 'Apply to Drive' : 'Driver Login'}</Text>
-          <Text style={styles.subLeft}>{step === 'CHOICE' ? 'Become a driver or login' : step === 'OWNERSHIP' ? 'How will you drive with us?' : step === 'VEHICLE' ? 'Upload required documents' : isApplying ? 'Join the Volta network.' : 'Enter your phone number to go online.'}</Text>
+          <Text style={[styles.titleLeft, keyboardVisible && { fontSize: 20, marginTop: 4, marginBottom: 4 }]}>
+            {step === 'CHOICE' ? 'Welcome to Volta' : step === 'OWNERSHIP' ? 'Vehicle Setup' : step === 'VEHICLE' ? 'Final Details' : isApplying ? 'Apply to Drive' : 'Driver Login'}
+          </Text>
+          {!keyboardVisible && (
+            <Text style={styles.subLeft}>
+              {step === 'CHOICE' ? 'Become a driver or login' : step === 'OWNERSHIP' ? 'How will you drive with us?' : step === 'VEHICLE' ? 'Upload required documents' : isApplying ? 'Join the Volta network.' : 'Enter your phone number to go online.'}
+            </Text>
+          )}
           
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
@@ -248,6 +289,7 @@ export default function AuthScreen({ onLogin }) {
                 style={styles.input} 
                 value={phone}
                 onChangeText={setPhone}
+                onFocus={() => setKeyboardVisible(true)}
                 placeholder="Phone Number (+224 620 ...)" 
                 placeholderTextColor="#9CA3AF" 
                 keyboardType="phone-pad" 
@@ -259,10 +301,10 @@ export default function AuthScreen({ onLogin }) {
           
           ) : step === 'PROFILE' ? (
             <>
-              <TouchableOpacity style={styles.uploadBtn} onPress={() => pickImage(setPhotoUri)}>
+              <TouchableOpacity style={[styles.uploadBtn, keyboardVisible && { paddingVertical: 10, marginBottom: 10 }]} onPress={() => pickImage(setPhotoUri)}>
                 {photoUri ? (
-                    <Image source={{ uri: photoUri?.uri || photoUri }} style={{ width: 100, height: 100, borderRadius: 50, marginBottom: 8 }} />
-                ) : <Camera color="#fff" size={32} style={{ marginBottom: 8 }} />}
+                    <Image source={{ uri: photoUri?.uri || photoUri }} style={{ width: keyboardVisible ? 56 : 100, height: keyboardVisible ? 56 : 100, borderRadius: keyboardVisible ? 28 : 50, marginBottom: keyboardVisible ? 4 : 8 }} />
+                ) : <Camera color="#fff" size={keyboardVisible ? 24 : 32} style={{ marginBottom: keyboardVisible ? 4 : 8 }} />}
                 <Text style={styles.uploadBtnText}>{photoUri ? 'Change Profile Photo' : 'Upload Profile Photo'}</Text>
                 {photoUri && <CheckCircle2 color="#05A357" size={20} style={{ position: 'absolute', top: 12, right: 12 }} />}
               </TouchableOpacity>
@@ -272,6 +314,7 @@ export default function AuthScreen({ onLogin }) {
                   style={styles.input}
                   value={firstName}
                   onChangeText={setFirstName}
+                  onFocus={() => setKeyboardVisible(true)}
                   keyboardType="default"
                   placeholder="Sarah"
                   placeholderTextColor="rgba(245,247,250,0.4)"
@@ -284,6 +327,7 @@ export default function AuthScreen({ onLogin }) {
                   style={styles.input}
                   value={lastName}
                   onChangeText={setLastName}
+                  onFocus={() => setKeyboardVisible(true)}
                   keyboardType="default"
                   placeholder="O."
                   placeholderTextColor="rgba(245,247,250,0.4)"
@@ -298,6 +342,7 @@ export default function AuthScreen({ onLogin }) {
                   style={styles.input}
                   value={email}
                   onChangeText={setEmail}
+                  onFocus={() => setKeyboardVisible(true)}
                   placeholder="name@example.com"
                   placeholderTextColor="rgba(245,247,250,0.4)"
                   selectionColor={'#D4AF37'}
@@ -346,6 +391,7 @@ export default function AuthScreen({ onLogin }) {
                       style={styles.input}
                       value={carMake}
                       onChangeText={setCarMake}
+                      onFocus={() => setKeyboardVisible(true)}
                       placeholder="e.g. Toyota Prius 2018"
                       placeholderTextColor="rgba(245,247,250,0.4)"
                       selectionColor={'#D4AF37'}
@@ -357,6 +403,7 @@ export default function AuthScreen({ onLogin }) {
                       style={styles.input}
                       value={carPlate}
                       onChangeText={setCarPlate}
+                      onFocus={() => setKeyboardVisible(true)}
                       placeholder="e.g. RC-1234-A"
                       placeholderTextColor="rgba(245,247,250,0.4)"
                       selectionColor={'#D4AF37'}
@@ -401,6 +448,7 @@ export default function AuthScreen({ onLogin }) {
                     Keyboard.dismiss();
                   }
                 }}
+                onFocus={() => setKeyboardVisible(true)}
                 placeholder="Enter 4-digit OTP" 
                 placeholderTextColor="#9CA3AF" 
                 keyboardType="number-pad"
@@ -420,9 +468,20 @@ export default function AuthScreen({ onLogin }) {
 }
 
 const styles = StyleSheet.create({
-  container: { position: 'absolute', top: 0, left: 0, width: width, height: height, backgroundColor: '#0B101E', zIndex: 999, elevation: 99 },
+  container: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#0B101E',
+    zIndex: 999,
+    elevation: 99
+  },
   inner: { flex: 1, width: '100%' },
-  scrollContent: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
+  scrollContent: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 20 },
   card: { width: '100%', maxWidth: 420, backgroundColor: '#1A2133', borderRadius: 24, padding: 32, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   titleLeft: { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 8, marginTop: 12 },
   subLeft: { fontSize: 15, color: '#9CA3AF', marginBottom: 32 },
