@@ -22,7 +22,7 @@
         "NSLocationWhenInUseUsageDescription": "Allow Volta to use your location to find nearby drivers.",
         "NSLocationAlwaysUsageDescription": "Allow Volta to use your location to find nearby drivers."
       },
-      "buildNumber": "68"
+      "buildNumber": "69"
     },
     "android": {
       "package": "com.volta.customer",
@@ -31,7 +31,7 @@
           "apiKey": "DUMMY_KEY_TO_PREVENT_CRASH"
         }
       },
-      "versionCode": 63
+      "versionCode": 64
     },
     "web": {
       "favicon": "./assets/favicon.png"
