@@ -4,6 +4,7 @@ import {
   Animated, Easing, Platform, Dimensions
 } from 'react-native';
 import { Menu, ShieldAlert, Settings, Zap } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import C from '../constants/colors';
 
 
@@ -12,6 +13,7 @@ import C from '../constants/colors';
 const { width, height } = Dimensions.get('window');
 
 export default function DashboardScreen({ isOnline, toggleOnline, onMenuPress, onSafetyPress, onSettingsPress, onPromoPress, onProfilePress, wallet, profile }) {
+  const insets = useSafeAreaInsets();
   const pulse1 = useRef(new Animated.Value(0)).current;
   const pulse2 = useRef(new Animated.Value(0)).current;
 
@@ -79,7 +81,7 @@ export default function DashboardScreen({ isOnline, toggleOnline, onMenuPress, o
       )}
 
       {/* ── BOTTOM: GO Button ──────────── */}
-      <View style={styles.bottomArea} pointerEvents="auto">
+      <View style={[styles.bottomArea, { paddingBottom: Platform.OS === 'ios' ? 100 : 80 + Math.max(insets.bottom, 24) }]} pointerEvents="auto">
         {/* Offline message */}
         {!isOnline && (
           <View style={styles.offlineCard}>
@@ -108,7 +110,7 @@ export default function DashboardScreen({ isOnline, toggleOnline, onMenuPress, o
 
       {/* ── PROPER BOTTOM NAV BAR ──────────── */}
       <View style={styles.navWrap} pointerEvents="auto">
-        <View style={styles.nav}>
+        <View style={[styles.nav, { paddingBottom: Platform.OS === 'ios' ? 30 : Math.max(insets.bottom, 24) + 12 }]}>
           <TouchableOpacity style={styles.navItem} onPress={onSafetyPress}>
             <ShieldAlert size={24} color={C.gray400} />
             <Text style={styles.navLabel}>Safety</Text>

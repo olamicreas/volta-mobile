@@ -229,20 +229,18 @@ export default function AuthScreen({ onLogin }) {
           contentContainerStyle={[
             styles.scrollContent,
             {
-              paddingTop: keyboardVisible
-                ? Math.max(38, insets.top + 24)
-                : Math.max(30, insets.top + 16),
-              paddingBottom: Math.max(24, insets.bottom + 20) + (keyboardVisible ? (Platform.OS === 'android' ? Math.round((keyboardHeight || 280) * 0.45) : 30) : 0),
-              justifyContent: keyboardVisible ? 'flex-start' : 'center',
+              paddingTop: Math.max(24, insets.top + 16),
+              paddingBottom: Math.max(24, insets.bottom + 20) + (keyboardVisible ? (Platform.OS === 'android' ? 24 : 30) : 0),
+              justifyContent: 'center',
             }
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
-          <View style={[styles.card, keyboardVisible && { padding: 24 }]}>
+          <View style={[styles.card, keyboardVisible && { padding: 28 }]}>
             {step !== 'CHOICE' && (
-            <TouchableOpacity style={{ marginBottom: keyboardVisible ? 10 : 16 }} onPress={() => {
+            <TouchableOpacity style={{ marginBottom: keyboardVisible ? 12 : 16 }} onPress={() => {
                 if (step === 'PHONE') setStep('CHOICE');
                 else if (step === 'OTP') setStep('PHONE');
                 else if (step === 'PROFILE') setStep('PHONE');
@@ -252,25 +250,23 @@ export default function AuthScreen({ onLogin }) {
               <ArrowLeft color="#fff" size={24} />
             </TouchableOpacity>
           )}
-          <View style={{ alignItems: 'center', marginTop: step === 'CHOICE' ? 16 : 0, marginBottom: keyboardVisible ? 10 : 12 }}>
+          <View style={{ alignItems: 'center', marginTop: step === 'CHOICE' ? 16 : 0, marginBottom: keyboardVisible ? 12 : 12 }}>
              <Image
                source={require('../../assets/icon.png')}
                style={{
-                 width: keyboardVisible ? 64 : 80,
-                 height: keyboardVisible ? 64 : 80,
-                 borderRadius: keyboardVisible ? 16 : 20
+                 width: keyboardVisible ? 70 : 80,
+                 height: keyboardVisible ? 70 : 80,
+                 borderRadius: keyboardVisible ? 18 : 20
                }}
                resizeMode="contain"
              />
           </View>
-          <Text style={[styles.titleLeft, keyboardVisible && { fontSize: 22, marginTop: 6, marginBottom: 6 }]}>
+          <Text style={[styles.titleLeft, keyboardVisible && { fontSize: 24, marginTop: 6, marginBottom: 4 }]}>
             {step === 'CHOICE' ? 'Welcome to Volta' : step === 'OWNERSHIP' ? 'Vehicle Setup' : step === 'VEHICLE' ? 'Final Details' : isApplying ? 'Apply to Drive' : 'Driver Login'}
           </Text>
-          {!keyboardVisible && (
-            <Text style={styles.subLeft}>
-              {step === 'CHOICE' ? 'Become a driver or login' : step === 'OWNERSHIP' ? 'How will you drive with us?' : step === 'VEHICLE' ? 'Upload required documents' : isApplying ? 'Join the Volta network.' : 'Enter your phone number to go online.'}
-            </Text>
-          )}
+          <Text style={[styles.subLeft, keyboardVisible && { marginBottom: 18, fontSize: 13 }]}>
+            {step === 'CHOICE' ? 'Become a driver or login' : step === 'OWNERSHIP' ? 'How will you drive with us?' : step === 'VEHICLE' ? 'Upload required documents' : isApplying ? 'Join the Volta network.' : 'Enter your phone number to go online.'}
+          </Text>
           
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
 

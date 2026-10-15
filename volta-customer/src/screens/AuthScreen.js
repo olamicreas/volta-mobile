@@ -165,11 +165,9 @@ export default function AuthScreen({ onLogin }) {
           contentContainerStyle={[
             styles.scrollContent,
             {
-              paddingTop: keyboardVisible
-                ? Math.max(38, insets.top + 24)
-                : Math.max(30, insets.top + 16),
-              paddingBottom: Math.max(24, insets.bottom + 20) + (keyboardVisible ? (Platform.OS === 'android' ? Math.round((keyboardHeight || 280) * 0.45) : 30) : 0),
-              justifyContent: keyboardVisible ? 'flex-start' : 'center',
+              paddingTop: Math.max(24, insets.top + 16),
+              paddingBottom: Math.max(24, insets.bottom + 20) + (keyboardVisible ? (Platform.OS === 'android' ? 24 : 30) : 0),
+              justifyContent: 'center',
             }
           ]}
           keyboardShouldPersistTaps="handled"
@@ -183,19 +181,17 @@ export default function AuthScreen({ onLogin }) {
                 backgroundColor: '#000',
                 overflow: 'hidden',
                 padding: 0,
-                width: keyboardVisible ? 64 : 80,
-                height: keyboardVisible ? 64 : 80,
-                borderRadius: keyboardVisible ? 18 : 24,
+                width: keyboardVisible ? 68 : 80,
+                height: keyboardVisible ? 68 : 80,
+                borderRadius: keyboardVisible ? 20 : 24,
                 marginBottom: keyboardVisible ? 16 : 28,
               }
             ]}>
               <RNImage source={require('../../assets/icon.png')} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
             </View>
 
-            <Text style={[styles.logo, keyboardVisible && { fontSize: 32, marginBottom: 6 }]}>Volta</Text>
-            {!keyboardVisible && (
-              <Text style={styles.tagline}>The luxury ride experience.</Text>
-            )}
+            <Text style={[styles.logo, keyboardVisible && { fontSize: 36, marginBottom: 4 }]}>Volta</Text>
+            <Text style={[styles.tagline, keyboardVisible && { fontSize: 15, marginBottom: 18 }]}>The luxury ride experience.</Text>
 
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 

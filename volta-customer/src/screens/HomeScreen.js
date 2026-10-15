@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Grid2x2, Search, Plane, Briefcase } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import C from '../constants/colors';
 
 const { width } = Dimensions.get('window');
@@ -13,6 +14,10 @@ const NAV_BAR_HEIGHT = Platform.OS === 'ios' ? 79 : 63;
 const STATUS_BAR_OFFSET = Platform.OS === 'ios' ? 54 : 42;
 
 export default function HomeScreen({ onMenuPress, onSearchPress, onProfilePress, profile, places, currentAddress }) {
+  const insets = useSafeAreaInsets();
+  const searchBottomOffset = Platform.OS === 'ios'
+    ? NAV_BAR_HEIGHT + 24
+    : Math.max(insets.bottom, 24) + 12 + 48 + 16;
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
 
@@ -45,7 +50,7 @@ export default function HomeScreen({ onMenuPress, onSearchPress, onProfilePress,
         </TouchableOpacity>
       </View>
 
-      <View style={[styles.searchWrapper, { bottom: NAV_BAR_HEIGHT + 24 }]} pointerEvents="auto">
+      <View style={[styles.searchWrapper, { bottom: searchBottomOffset }]} pointerEvents="auto">
         {/* Glass Panel Fixed */}
         <View style={styles.shadowWrapperLarge}>
           <View style={styles.glassInner}>

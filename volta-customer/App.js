@@ -19,6 +19,7 @@ import { sendLocalPush, requestPushPermissions } from './src/services/notificati
 import { StripeProvider } from '@stripe/stripe-react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { useSafeAreaInsets, SafeAreaProvider } from 'react-native-safe-area-context';
 import SavedPlacesScreen from './src/screens/SavedPlacesScreen';
 import AddPaymentScreen from './src/screens/AddPaymentScreen';
 import PromotionsScreen from './src/screens/PromotionsScreen';
@@ -57,6 +58,7 @@ let profileAlertTimerGlobal = null;
 let isProfileAlertShowingGlobal = false;
 
 function MainApp({ navigation }) {
+  const insets = useSafeAreaInsets();
 
   const [view, setView] = useState('AUTH');
   const [location, setLocation] = useState({ latitude: START_LAT, longitude: START_LNG });
@@ -571,19 +573,19 @@ function MainApp({ navigation }) {
 
         
         {view === 'RIDES' && (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: '#F5F7FA', zIndex: 50, paddingBottom: 80 }]} pointerEvents="auto">
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: '#F5F7FA', zIndex: 50, paddingBottom: Platform.OS === 'ios' ? 80 : 70 + Math.max(insets.bottom, 24) }]} pointerEvents="auto">
             <RideHistoryScreen trips={trips} navigation={{...navigation, goBack: () => setView('HOME')}} />
           </View>
         )}
 
         {view === 'WALLET' && (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: '#F5F7FA', zIndex: 50, paddingBottom: 80 }]} pointerEvents="auto">
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: '#F5F7FA', zIndex: 50, paddingBottom: Platform.OS === 'ios' ? 80 : 70 + Math.max(insets.bottom, 24) }]} pointerEvents="auto">
             <WalletScreen wallet={wallet} navigation={{...navigation, goBack: () => setView('HOME')}} />
           </View>
         )}
 
         {view === 'ACCOUNT' && (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: '#F5F7FA', zIndex: 50, paddingBottom: 80 }]} pointerEvents="auto">
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: '#F5F7FA', zIndex: 50, paddingBottom: Platform.OS === 'ios' ? 80 : 70 + Math.max(insets.bottom, 24) }]} pointerEvents="auto">
             <AccountScreen profile={profile} navigation={{...navigation, goBack: () => setView('HOME')}} />
           </View>
         )}
@@ -591,7 +593,12 @@ function MainApp({ navigation }) {
         {/* ══ BOTTOM NAV ════════════════════════════════ */}
         {showNav && (
           <View style={styles.navWrap} pointerEvents="auto">
-            <View style={styles.nav}>
+            <View style={[
+              styles.nav,
+              {
+                paddingBottom: Platform.OS === 'ios' ? 30 : Math.max(insets.bottom, 24) + 12
+              }
+            ]}>
               <TouchableOpacity style={styles.navItem} onPress={() => setView('HOME')}>
                 <Home
                   size={24}
@@ -706,27 +713,27 @@ const styles = StyleSheet.create({
 
 export default function App() {
   return (
-    <StripeProvider publishableKey="pk_test_51Ser79BkXz3IrSREgfolHBSyAuugOH8NtlC7rLkaEB8OALbIiTd54G6IgMym6FRwH8Oc25Wcq7x7cUpHDFs01diz00sPYiWTOH">
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Main" component={MainApp} />
-                <Stack.Screen name="SavedPlaces" component={SavedPlacesScreen} />
-        <Stack.Screen name="Account" component={AccountScreen} />
-        <Stack.Screen name="ProfileDetail" component={ProfileDetailScreen} />
-        <Stack.Screen name="RideHistory" component={RideHistoryScreen} />
-        <Stack.Screen name="RideDetail" component={RideDetailScreen} />
-        <Stack.Screen name="Wallet" component={WalletScreen} />
-        <Stack.Screen name="AddPayment" component={AddPaymentScreen} />
+    <SafeAreaProvider>
+      <StripeProvider publishableKey="pk_test_51Ser79BkXz3IrSREgfolHBSyAuugOH8NtlC7rLkaEB8OALbIiTd54G6IgMym6FRwH8Oc25Wcq7x7cUpHDFs01diz00sPYiWTOH">
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Main" component={MainApp} />
+          <Stack.Screen name="SavedPlaces" component={SavedPlacesScreen} />
+          <Stack.Screen name="Account" component={AccountScreen} />
+          <Stack.Screen name="ProfileDetail" component={ProfileDetailScreen} />
+          <Stack.Screen name="RideHistory" component={RideHistoryScreen} />
+          <Stack.Screen name="RideDetail" component={RideDetailScreen} />
+          <Stack.Screen name="Wallet" component={WalletScreen} />
+          <Stack.Screen name="AddPayment" component={AddPaymentScreen} />
 
-        <Stack.Screen name="Settings" component={SettingsScreen} />
-        <Stack.Screen name="Support" component={SupportScreen} />
-        <Stack.Screen name="Promotions" component={PromotionsScreen} />
-        <Stack.Screen name="CustomerSafety" component={CustomerSafetyScreen} />
-        <Stack.Screen name="Cancellation" component={CancellationScreen} />
-
-
-      </Stack.Navigator>
-    </NavigationContainer>
-    </StripeProvider>
+          <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen name="Support" component={SupportScreen} />
+          <Stack.Screen name="Promotions" component={PromotionsScreen} />
+          <Stack.Screen name="CustomerSafety" component={CustomerSafetyScreen} />
+          <Stack.Screen name="Cancellation" component={CancellationScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+      </StripeProvider>
+    </SafeAreaProvider>
   );
 }

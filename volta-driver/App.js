@@ -18,6 +18,7 @@ import { sendLocalPush, requestPushPermissions } from './src/services/notificati
 
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import CancellationScreen from './src/screens/CancellationScreen';
 import WalletScreen from './src/screens/WalletScreen';
 import FeedbackScreen from './src/screens/FeedbackScreen';
@@ -795,25 +796,27 @@ const styles = StyleSheet.create({
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false, cardStyle: { backgroundColor: '#121212' } }}>
-        <Stack.Screen name="Main" component={MainApp} />
-        <Stack.Screen name="Account" component={AccountScreen} />
-        <Stack.Screen name="Wallet" component={WalletScreen} />
-        <Stack.Screen name="VehicleProfile" component={VehicleProfileScreen} />
-        <Stack.Screen name="Feedback" component={FeedbackScreen} />
+    <SafeAreaProvider>
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false, cardStyle: { backgroundColor: '#121212' } }}>
+          <Stack.Screen name="Main" component={MainApp} />
+          <Stack.Screen name="Account" component={AccountScreen} />
+          <Stack.Screen name="Wallet" component={WalletScreen} />
+          <Stack.Screen name="VehicleProfile" component={VehicleProfileScreen} />
+          <Stack.Screen name="Feedback" component={FeedbackScreen} />
 
 
-        <Stack.Screen name="Earnings" component={EarningsScreen} />
-        <Stack.Screen name="ProfileDetail" component={ProfileScreen} />
-        <Stack.Screen name="Profile" component={ProfileScreen} />
-        <Stack.Screen name="Safety" component={SafetyScreen} />
-        <Stack.Screen name="Preferences" component={PreferencesScreen} />
-        <Stack.Screen name="Promo" component={PromoScreen} />
-        <Stack.Screen name="Support" component={SupportScreen} />
-        <Stack.Screen name="Cancellation" component={CancellationScreen} />
+          <Stack.Screen name="Earnings" component={EarningsScreen} />
+          <Stack.Screen name="ProfileDetail" component={ProfileScreen} />
+          <Stack.Screen name="Profile" component={ProfileScreen} />
+          <Stack.Screen name="Safety" component={SafetyScreen} />
+          <Stack.Screen name="Preferences" component={PreferencesScreen} />
+          <Stack.Screen name="Promo" component={PromoScreen} />
+          <Stack.Screen name="Support" component={SupportScreen} />
+          <Stack.Screen name="Cancellation" component={CancellationScreen} />
 
-      </Stack.Navigator>
-    </NavigationContainer>
+        </Stack.Navigator>
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }
