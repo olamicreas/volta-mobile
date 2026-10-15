@@ -229,8 +229,8 @@ export default function AuthScreen({ onLogin }) {
           contentContainerStyle={[
             styles.scrollContent,
             {
-              paddingTop: Math.max(24, insets.top + 16),
-              paddingBottom: Math.max(24, insets.bottom + 20) + (keyboardVisible ? (Platform.OS === 'android' ? 24 : 30) : 0),
+              paddingTop: Math.max(16, insets.top + 8),
+              paddingBottom: Math.max(24, insets.bottom + 20) + (keyboardVisible ? (Platform.OS === 'android' ? 65 : 30) : 0),
               justifyContent: 'center',
             }
           ]}

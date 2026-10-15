@@ -29,10 +29,10 @@
       "package": "com.volta.driver",
       "config": {
         "googleMaps": {
-          "apiKey": "DUMMY_KEY_TO_PREVENT_CRASH"
+          "apiKey": "AIzaSyCnt02Uotcj2lXun70USSQ2hRsOcDXrZLY"
         }
       },
-      "versionCode": 65
+      "versionCode": 66
     },
     "web": {
       "favicon": "./assets/favicon.png"

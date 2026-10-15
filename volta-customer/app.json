@@ -28,10 +28,10 @@
       "package": "com.volta.customer",
       "config": {
         "googleMaps": {
-          "apiKey": "DUMMY_KEY_TO_PREVENT_CRASH"
+          "apiKey": "AIzaSyCnt02Uotcj2lXun70USSQ2hRsOcDXrZLY"
         }
       },
-      "versionCode": 67
+      "versionCode": 68
     },
     "web": {
       "favicon": "./assets/favicon.png"
