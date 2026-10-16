@@ -1,28 +1,88 @@
 import React, { useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  Dimensions, FlatList, KeyboardAvoidingView, Platform, ScrollView, Keyboard, Alert, DeviceEventEmitter
+  Dimensions, FlatList, KeyboardAvoidingView, Platform, ScrollView, Keyboard, Alert, DeviceEventEmitter, ActivityIndicator
 } from 'react-native';
 const { width, height } = Dimensions.get('window');
-import { Search, MapPin, PlaneTakeoff, Briefcase, ArrowLeft, Home, Bookmark } from 'lucide-react-native';
+import { Search, MapPin, PlaneTakeoff, Briefcase, ArrowLeft, Home, Bookmark, Plane } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../services/api';
 // Assuming you have your colors file
 import C from '../constants/colors';
 
-export default function SearchScreen({ onClose, onSelectDestination, onPickupChange, pickup, setPickup, places }) {
+export default function SearchScreen({ onClose, onSelectDestination, onPickupChange, pickup, setPickup, places, initialMode = 'DEFAULT', userCoords }) {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const [dropoff, setDropoff] = React.useState('');
   const [suggestions, setSuggestions] = React.useState([]);
   const [focusedField, setFocusedField] = React.useState('dropoff');
+  const [loadingAirports, setLoadingAirports] = React.useState(false);
   const searchTimeout = React.useRef(null);
+
   useEffect(() => {
     return () => {
       if (searchTimeout.current) clearTimeout(searchTimeout.current);
     };
   }, []);
+
+  const fetchNearbyAirports = async () => {
+    setLoadingAirports(true);
+    const lat = userCoords?.latitude || 9.5350;
+    const lng = userCoords?.longitude || -13.6773;
+
+    try {
+      const googleUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=60000&type=airport&key=AIzaSyCnt02Uotcj2lXun70USSQ2hRsOcDXrZLY`;
+      const res = await fetch(googleUrl);
+      const json = await res.json();
+      if (json.results && json.results.length > 0) {
+        const list = json.results.map(r => ({
+          id: r.place_id || String(Math.random()),
+          name: r.name,
+          full: r.vicinity || r.formatted_address || 'Airport',
+          lat: r.geometry.location.lat,
+          lon: r.geometry.location.lng,
+          isAirport: true,
+        }));
+        setSuggestions(list);
+        setLoadingAirports(false);
+        return;
+      }
+    } catch (e) {
+      console.log('Google Places airport search error:', e);
+    }
+
+    try {
+      const res = await fetch(`https://photon.komoot.io/api/?q=airport&lat=${lat}&lon=${lng}&limit=8`);
+      const data = await res.json();
+      if (data.features && data.features.length > 0) {
+        const list = data.features.map(f => {
+          const p = f.properties;
+          const full = [p.name, p.street, p.city, p.country].filter(Boolean).join(', ');
+          return {
+            id: String(p.osm_id || Math.random()),
+            name: p.name || 'Airport',
+            full: full,
+            lat: f.geometry.coordinates[1],
+            lon: f.geometry.coordinates[0],
+            isAirport: true,
+          };
+        });
+        setSuggestions(list);
+      }
+    } catch(e) {
+      console.log('Photon airport error:', e);
+    } finally {
+      setLoadingAirports(false);
+    }
+  };
+
+  useEffect(() => {
+    if (initialMode === 'AIRPORT') {
+      setFocusedField('dropoff');
+      fetchNearbyAirports();
+    }
+  }, [initialMode]);
 
   const handleSearch = (text, field) => {
     if (field === 'pickup') setPickup(text);
@@ -167,7 +227,7 @@ export default function SearchScreen({ onClose, onSelectDestination, onPickupCha
           <TouchableOpacity style={styles.backBtn} onPress={handleClose}>
             <ArrowLeft size={20} color={C.lux900} />
           </TouchableOpacity>
-          <Text style={styles.title}>Plan Route</Text>
+          <Text style={styles.title}>{initialMode === 'AIRPORT' ? 'Select Airport' : 'Plan Route'}</Text>
         </View>
 
         {/* Inputs with connecting line */}
@@ -192,7 +252,7 @@ export default function SearchScreen({ onClose, onSelectDestination, onPickupCha
               value={dropoff}
               onChangeText={t => handleSearch(t, 'dropoff')}
               onFocus={() => setFocusedField('dropoff')}
-              placeholder="Enter destination"
+              placeholder={initialMode === 'AIRPORT' ? "Search airport name..." : "Enter destination"}
               placeholderTextColor={C.gray400}
               autoFocus
             />
@@ -206,12 +266,31 @@ export default function SearchScreen({ onClose, onSelectDestination, onPickupCha
         contentContainerStyle={{ padding: 24, paddingBottom: Math.max(120, insets.bottom + 60) }}
         keyboardShouldPersistTaps="handled"
       >
-        {suggestions.length > 0 ? (
+        {loadingAirports ? (
+          <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 48 }}>
+            <ActivityIndicator size="large" color={C.gold || '#D97706'} />
+            <Text style={{ marginTop: 14, fontSize: 15, fontWeight: '600', color: C.lux900 }}>
+              Finding nearby airports...
+            </Text>
+            <Text style={{ marginTop: 6, fontSize: 13, color: C.gray500 }}>
+              Searching international & local terminals
+            </Text>
+          </View>
+        ) : suggestions.length > 0 ? (
           <>
+            {initialMode === 'AIRPORT' && (
+              <View style={{ marginBottom: 12 }}>
+                <Text style={styles.sectionLabel}>Nearby Airports</Text>
+              </View>
+            )}
             {suggestions.map(item => (
               <TouchableOpacity key={item.id} style={styles.placeCard} onPress={() => handleSelect(item)}>
-                <View style={styles.placeIconWrap}>
-                  <MapPin size={22} color={C.lux900} />
+                <View style={[styles.placeIconWrap, item.isAirport && { backgroundColor: '#FEF3C7' }]}>
+                  {item.isAirport ? (
+                    <Plane size={22} color={C.gold || '#D97706'} />
+                  ) : (
+                    <MapPin size={22} color={C.lux900} />
+                  )}
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.placeName}>{item.name}</Text>
@@ -220,6 +299,16 @@ export default function SearchScreen({ onClose, onSelectDestination, onPickupCha
               </TouchableOpacity>
             ))}
           </>
+        ) : initialMode === 'AIRPORT' ? (
+          <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 48 }}>
+            <Plane size={36} color={C.gray400} />
+            <Text style={{ marginTop: 12, fontSize: 15, fontWeight: '600', color: C.lux900 }}>
+              No nearby airports detected
+            </Text>
+            <Text style={{ marginTop: 6, fontSize: 13, color: C.gray500, textAlign: 'center', paddingHorizontal: 20 }}>
+              Type your airport destination in the search box above.
+            </Text>
+          </View>
         ) : (
           <>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>

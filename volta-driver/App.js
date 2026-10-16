@@ -495,7 +495,7 @@ function MainApp({ navigation }) {
         <MapView
           ref={mapRef}
           style={StyleSheet.absoluteFill}
-          customMapStyle={mapStyle}
+          customMapStyle={Platform.OS === 'ios' ? mapStyle : undefined}
           initialRegion={{ latitude: location.latitude, longitude: location.longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 }}
           showsUserLocation={false}
           scrollEnabled={isDash}

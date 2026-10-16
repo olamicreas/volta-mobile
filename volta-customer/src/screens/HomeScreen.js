@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Image,
-  Platform, Dimensions
+  Platform, Dimensions, Alert
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Grid2x2, Search, Plane, Briefcase } from 'lucide-react-native';
@@ -13,11 +13,64 @@ const { width } = Dimensions.get('window');
 const NAV_BAR_HEIGHT = Platform.OS === 'ios' ? 79 : 63;
 const STATUS_BAR_OFFSET = Platform.OS === 'ios' ? 54 : 42;
 
-export default function HomeScreen({ onMenuPress, onSearchPress, onProfilePress, profile, places, currentAddress }) {
+export default function HomeScreen({
+  onMenuPress,
+  onSearchPress,
+  onProfilePress,
+  onAirportPress,
+  onSelectDestination,
+  navigation,
+  profile,
+  places,
+  currentAddress
+}) {
   const insets = useSafeAreaInsets();
   const searchBottomOffset = Platform.OS === 'ios'
     ? NAV_BAR_HEIGHT + 24
     : Math.max(insets.bottom, 24) + 12 + 48 + 16;
+
+  const handleOfficePress = () => {
+    const officePlace = (places || []).find(p => {
+      const type = (p.place_type || '').toLowerCase();
+      const name = (p.name || '').toLowerCase();
+      return type === 'work' || type === 'office' || name === 'work' || name.startsWith('work') || name === 'office' || name.startsWith('office');
+    });
+
+    const hasAddress = officePlace && officePlace.address && officePlace.address.trim().length > 0;
+    if (hasAddress) {
+      const lat = parseFloat(officePlace.latitude || officePlace.lat);
+      const lng = parseFloat(officePlace.longitude || officePlace.lng || officePlace.lon);
+      if (!isNaN(lat) && !isNaN(lng) && onSelectDestination) {
+        onSelectDestination(officePlace.name || 'Office', lat, lng);
+        return;
+      }
+    }
+
+    Alert.alert(
+      'Add Office Address',
+      "You haven't saved your office address yet. Would you like to add it to your saved places now?",
+      [
+        { text: 'Later', style: 'cancel' },
+        {
+          text: 'Add Office',
+          onPress: () => {
+            if (navigation) {
+              navigation.navigate('SavedPlaces', { defaultName: 'Work' });
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleAirportPress = () => {
+    if (onAirportPress) {
+      onAirportPress();
+    } else {
+      onSearchPress('Airport');
+    }
+  };
+
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
 
@@ -67,14 +120,14 @@ export default function HomeScreen({ onMenuPress, onSearchPress, onProfilePress,
               </TouchableOpacity>
 
               <View style={styles.quickRow}>
-                <TouchableOpacity style={styles.quickBtn} activeOpacity={0.85} onPress={() => onSearchPress('Aéroport Sékou Touré')}>
+                <TouchableOpacity style={styles.quickBtn} activeOpacity={0.85} onPress={handleAirportPress}>
                   <Plane size={18} color={C.gold} strokeWidth={2} />
                   <Text style={styles.quickText}>Airport</Text>
                 </TouchableOpacity>
 
                 <View style={styles.quickDivider} />
 
-                <TouchableOpacity style={styles.quickBtn} activeOpacity={0.85} onPress={() => onSearchPress('Hôtel Kaloum')}>
+                <TouchableOpacity style={styles.quickBtn} activeOpacity={0.85} onPress={handleOfficePress}>
                   <Briefcase size={18} color={C.gold} strokeWidth={2} />
                   <Text style={styles.quickText}>Office</Text>
                 </TouchableOpacity>

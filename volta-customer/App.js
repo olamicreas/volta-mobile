@@ -76,6 +76,7 @@ function MainApp({ navigation }) {
   const [trips, setTrips] = useState([]);
   const [wallet, setWallet] = useState(null);
   const [currentAddress, setCurrentAddress] = useState('Current Location');
+  const [searchMode, setSearchMode] = useState('DEFAULT');
 
   const [tripState, setTripState] = useState(null);
   const [paymentRequest, setPaymentRequest] = useState(null);
@@ -235,6 +236,14 @@ function MainApp({ navigation }) {
         const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
         const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
         setLocation(coords);
+        if (mapRef.current) {
+          mapRef.current.animateToRegion({
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            latitudeDelta: 0.02,
+            longitudeDelta: 0.02,
+          }, 800);
+        }
         
         try {
           const addr = await Location.reverseGeocodeAsync(coords);
@@ -430,7 +439,7 @@ function MainApp({ navigation }) {
         <MapView
           ref={mapRef}
           style={StyleSheet.absoluteFill}
-          customMapStyle={mapStyle}
+          customMapStyle={Platform.OS === 'ios' ? mapStyle : undefined}
           initialRegion={{
             latitude: location.latitude,
             longitude: location.longitude,
@@ -443,6 +452,19 @@ function MainApp({ navigation }) {
           showsMyLocationButton={false}
           toolbarEnabled={false}
         >
+          {/* Custom User Location Marker */}
+          {location && (
+            <Marker
+              coordinate={{ latitude: location.latitude, longitude: location.longitude }}
+              title="Current Location"
+              anchor={{ x: 0.5, y: 0.5 }}
+            >
+              <View style={styles.userMarkerPulse}>
+                <View style={styles.userMarkerDot} />
+              </View>
+            </Marker>
+          )}
+
           {(view === 'ACTIVE' || view === 'BOOKING') && destLat && (
             <>
               <Marker coordinate={{ latitude: destLat, longitude: destLng }}>
@@ -484,7 +506,10 @@ function MainApp({ navigation }) {
         {view === 'HOME' && (
           <HomeScreen profile={profile} places={places} currentAddress={currentAddress}
             onMenuPress={() => navigation.navigate('Account')}
-            onSearchPress={(q) => { if (typeof q === 'string' && q) setDestName(q); setView('SEARCH'); }}
+            onSearchPress={(q) => { if (typeof q === 'string' && q) setDestName(q); setSearchMode('DEFAULT'); setView('SEARCH'); }}
+            onAirportPress={() => { setDestName(''); setSearchMode('AIRPORT'); setView('SEARCH'); }}
+            onSelectDestination={drawRoute}
+            navigation={navigation}
             onProfilePress={() => navigation.navigate('ProfileDetail')}
           />
         )}
@@ -495,8 +520,13 @@ function MainApp({ navigation }) {
             <SearchScreen places={places} currentAddress={currentAddress}
               pickup={pickup}
               setPickup={setPickup}
-              onClose={() => setView('HOME')}
-              onSelectDestination={drawRoute}
+              initialMode={searchMode}
+              userCoords={location}
+              onClose={() => { setSearchMode('DEFAULT'); setView('HOME'); }}
+              onSelectDestination={(name, lat, lon) => {
+                setSearchMode('DEFAULT');
+                drawRoute(name, lat, lon);
+              }}
             />
           </View>
         )}
@@ -634,6 +664,24 @@ function MainApp({ navigation }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F5F7FA' },
   destPin: { width: 16, height: 16, borderRadius: 8, backgroundColor: C.lux900, borderWidth: 4, borderColor: '#fff' },
+  userMarkerPulse: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(217, 119, 6, 0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(217, 119, 6, 0.5)',
+  },
+  userMarkerDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#0F172A',
+    borderWidth: 2.5,
+    borderColor: '#D97706',
+  },
 
   // ── Bottom nav ─────────────────────────────────────
   navWrap: { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 100 },
