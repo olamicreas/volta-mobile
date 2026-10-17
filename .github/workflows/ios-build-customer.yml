@@ -47,6 +47,13 @@ jobs:
           set -o pipefail
           EAS_LOCAL_BUILD_SKIP_CLEANUP=1 EAS_BUILD_DISABLE_EXPO_DOCTOR_STEP=1 EAS_BUILD_DISABLE_DOCTOR=1 eas build --platform ios --profile production --local --non-interactive --verbose-logs --output Customer-iOS.ipa 2>&1 | tee eas_build_output.log
 
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: customer-ipa
+          path: volta-customer/Customer-iOS.ipa
+          retention-days: 7
+
       - name: Copy Xcode Logs on failure
         if: failure()
         run: |
@@ -64,4 +71,7 @@ jobs:
 
       - name: Submit iOS App to TestFlight
         working-directory: volta-customer
-        run: eas submit --platform ios --profile production --path Customer-iOS.ipa --non-interactive
+        run: |
+          for i in 1 2; do
+            eas submit --platform ios --profile production --path Customer-iOS.ipa --non-interactive && break || sleep 30;
+          done
