@@ -19,6 +19,7 @@ import { sendLocalPush, requestPushPermissions } from './src/services/notificati
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useTranslation } from './src/constants/translations';
 import CancellationScreen from './src/screens/CancellationScreen';
 import WalletScreen from './src/screens/WalletScreen';
 import FeedbackScreen from './src/screens/FeedbackScreen';
@@ -48,7 +49,7 @@ let profileAlertTimerGlobal = null;
 let isProfileAlertShowingGlobal = false;
 
 function MainApp({ navigation }) {
-
+  const { t, isFrench } = useTranslation();
   const [view, setView] = useState('AUTH');
   const [profile, setProfile] = useState(null);
   const [wallet, setWallet] = useState(null);
@@ -601,13 +602,13 @@ function MainApp({ navigation }) {
                 <View style={styles.awaitingSpinnerBox}>
                   <ActivityIndicator size="large" color="#05A357" />
                 </View>
-                <Text style={styles.awaitingTitle}>Ride Ended</Text>
+                <Text style={styles.awaitingTitle}>{isFrench ? 'Course terminée' : 'Ride Ended'}</Text>
                 <Text style={styles.awaitingSub}>
                   {(tripState?.payment_method || 'CASH').toUpperCase() === 'CASH'
-                    ? 'Passenger Paying Cash'
+                    ? (isFrench ? 'Passager paie en espèces' : 'Passenger Paying Cash')
                     : (tripState?.payment_method || 'CASH').toUpperCase() === 'STRIPE'
-                    ? 'Card Payment (Stripe)'
-                    : 'Mobile Payment (Flutterwave)'}
+                    ? (isFrench ? 'Paiement Carte (Stripe)' : 'Card Payment (Stripe)')
+                    : (isFrench ? 'Paiement Mobile (Flutterwave)' : 'Mobile Payment (Flutterwave)')}
                 </Text>
 
                 <View style={styles.awaitingPriceBox}>
@@ -620,8 +621,8 @@ function MainApp({ navigation }) {
 
                 <Text style={styles.awaitingNote}>
                   {(tripState?.payment_method || 'CASH').toUpperCase() === 'CASH'
-                    ? 'Please collect the cash directly from the passenger, then tap below to confirm.'
-                    : 'The passenger is completing payment on their phone. This screen will automatically update once confirmed.'}
+                    ? (isFrench ? 'Veuillez encaisser les espèces directement auprès du passager, puis appuyez ci-dessous pour confirmer.' : 'Please collect the cash directly from the passenger, then tap below to confirm.')
+                    : (isFrench ? 'Le passager effectue le paiement sur son téléphone. Cet écran sera automatiquement mis à jour.' : 'The passenger is completing payment on their phone. This screen will automatically update once confirmed.')}
                 </Text>
 
                 <TouchableOpacity 
@@ -629,12 +630,12 @@ function MainApp({ navigation }) {
                   activeOpacity={0.8}
                   onPress={() => {
                     Alert.alert(
-                      "Cash Received",
-                      "Confirm that the passenger paid you in cash?",
+                      isFrench ? "Espèces reçues" : "Cash Received",
+                      isFrench ? "Confirmez-vous que le passager vous a payé en espèces ?" : "Confirm that the passenger paid you in cash?",
                       [
-                        { text: "Cancel", style: "cancel" },
+                        { text: isFrench ? "Annuler" : "Cancel", style: "cancel" },
                         { 
-                          text: "Yes, Confirm Cash", 
+                          text: isFrench ? "Oui, confirmer l'encaissement" : "Yes, Confirm Cash", 
                           onPress: () => {
                             socket.emit('confirm_cash_payment', {
                               trip_id: tripState?.trip_id || tripState?.id,
@@ -648,8 +649,8 @@ function MainApp({ navigation }) {
                 >
                   <Text style={styles.cashConfirmBtnText}>
                     {(tripState?.payment_method || 'CASH').toUpperCase() === 'CASH'
-                      ? 'Confirm Cash Received'
-                      : 'Passenger Paid Cash Instead'}
+                      ? (isFrench ? 'Confirmer l\'encaissement' : 'Confirm Cash Received')
+                      : (isFrench ? 'Le passager a payé en espèces' : 'Passenger Paid Cash Instead')}
                   </Text>
                 </TouchableOpacity>
               </View>

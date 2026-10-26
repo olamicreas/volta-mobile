@@ -2,12 +2,12 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, Animated, Dimensions } from 'react-native';
 import { Star, X } from 'lucide-react-native';
 import C from '../constants/colors';
-
-
+import { useTranslation } from '../constants/translations';
 
 const { width, height } = Dimensions.get('window');
 
 export default function RequestScreen({ trip, onAccept, onDecline }) {
+  const { t, isFrench } = useTranslation();
   const slideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
   const progressAnim = useRef(new Animated.Value(1)).current;
 
@@ -39,7 +39,7 @@ export default function RequestScreen({ trip, onAccept, onDecline }) {
           <View style={styles.headerTopRow}>
             <View style={styles.badgeRow}>
               <Star size={16} color="#000" fill="#000" />
-              <Text style={styles.badgeText}>Premium Trip</Text>
+              <Text style={styles.badgeText}>{isFrench ? 'Course Premium' : 'Premium Trip'}</Text>
             </View>
             <Text style={styles.timer}>15s</Text>
           </View>
@@ -51,7 +51,7 @@ export default function RequestScreen({ trip, onAccept, onDecline }) {
         <View style={styles.content}>
           {/* Price */}
           <Text style={styles.price}>{(trip?.price || 85000).toLocaleString()} GNF</Text>
-          <Text style={styles.tipText}>Includes expected tip</Text>
+          <Text style={styles.tipText}>{isFrench ? 'Pourboire estimé inclus' : 'Includes expected tip'}</Text>
           
           <View style={styles.divider} />
 
@@ -64,12 +64,12 @@ export default function RequestScreen({ trip, onAccept, onDecline }) {
             </View>
             <View style={styles.routeTexts}>
               <View style={styles.routeLeg}>
-                <Text style={styles.routeTime}>4 min away</Text>
-                <Text style={styles.routeDist}>1.2 miles</Text>
+                <Text style={styles.routeTime}>{isFrench ? '4 min de vous' : '4 min away'}</Text>
+                <Text style={styles.routeDist}>{isFrench ? '1.9 km' : '1.2 miles'}</Text>
               </View>
               <View style={styles.routeLeg}>
-                <Text style={styles.routeTime}>18 min trip</Text>
-                <Text style={styles.routeDist}>5.4 miles</Text>
+                <Text style={styles.routeTime}>{isFrench ? '18 min de course' : '18 min trip'}</Text>
+                <Text style={styles.routeDist}>{isFrench ? '8.7 km' : '5.4 miles'}</Text>
               </View>
             </View>
           </View>
@@ -84,8 +84,8 @@ export default function RequestScreen({ trip, onAccept, onDecline }) {
               </View>
             )}
             <View>
-              <Text style={styles.customerName}>{trip?.customer?.name || 'Customer'}</Text>
-              <Text style={styles.customerStats}>4.92 Rating • 150+ Trips</Text>
+              <Text style={styles.customerName}>{trip?.customer?.name || (isFrench ? 'Client' : 'Customer')}</Text>
+              <Text style={styles.customerStats}>4.92 ★ • 150+ {isFrench ? 'Courses' : 'Trips'}</Text>
             </View>
           </View>
 
@@ -95,7 +95,7 @@ export default function RequestScreen({ trip, onAccept, onDecline }) {
               <X size={24} color="#fff" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.btnAccept} onPress={() => handleAction('accept')} activeOpacity={0.9}>
-              <Text style={styles.btnAcceptText}>Tap to Accept</Text>
+              <Text style={styles.btnAcceptText}>{isFrench ? 'Accepter la course' : 'Tap to Accept'}</Text>
             </TouchableOpacity>
           </View>
         </View>

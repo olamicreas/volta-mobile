@@ -2,7 +2,7 @@
   "expo": {
     "name": "Volta Driver",
     "slug": "volta-driver",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -23,7 +23,7 @@
         "NSLocationWhenInUseUsageDescription": "Allow Volta Driver to use your location to track your route.",
         "NSLocationAlwaysUsageDescription": "Allow Volta Driver to use your location to track your route in the background."
       },
-      "buildNumber": "71"
+      "buildNumber": "72"
     },
     "android": {
       "package": "com.volta.driver",
@@ -32,7 +32,7 @@
           "apiKey": "AIzaSyCnt02Uotcj2lXun70USSQ2hRsOcDXrZLY"
         }
       },
-      "versionCode": 67
+      "versionCode": 68
     },
     "web": {
       "favicon": "./assets/favicon.png"

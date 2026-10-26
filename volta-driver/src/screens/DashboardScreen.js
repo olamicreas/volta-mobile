@@ -6,14 +6,13 @@ import {
 import { Menu, ShieldAlert, Settings, Zap } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import C from '../constants/colors';
-
-
-
+import { useTranslation } from '../constants/translations';
 
 const { width, height } = Dimensions.get('window');
 
 export default function DashboardScreen({ isOnline, toggleOnline, onMenuPress, onSafetyPress, onSettingsPress, onPromoPress, onProfilePress, wallet, profile }) {
   const insets = useSafeAreaInsets();
+  const { t, isFrench } = useTranslation();
   const pulse1 = useRef(new Animated.Value(0)).current;
   const pulse2 = useRef(new Animated.Value(0)).current;
 
@@ -52,7 +51,7 @@ export default function DashboardScreen({ isOnline, toggleOnline, onMenuPress, o
         </TouchableOpacity>
 
         <View style={styles.earningsCenter}>
-          <Text style={styles.earningsLabel}>Today's Earnings</Text>
+          <Text style={styles.earningsLabel}>{t('driver.todays_earnings')}</Text>
           <Text style={styles.earningsAmount}>{(wallet?.balance ?? 0).toLocaleString()} GNF</Text>
         </View>
 
@@ -75,7 +74,7 @@ export default function DashboardScreen({ isOnline, toggleOnline, onMenuPress, o
         <View style={styles.statusPillWrap} pointerEvents="none">
           <View style={styles.statusPill}>
             <View style={styles.statusPillDot} />
-            <Text style={styles.statusPillText}>Online · Finding Trips...</Text>
+            <Text style={styles.statusPillText}>{t('driver.online_finding')}</Text>
           </View>
         </View>
       )}
@@ -85,8 +84,8 @@ export default function DashboardScreen({ isOnline, toggleOnline, onMenuPress, o
         {/* Offline message */}
         {!isOnline && (
           <View style={styles.offlineCard}>
-            <Text style={styles.offlineTitle}>You're Offline</Text>
-            <Text style={styles.offlineSub}>Tap GO to start receiving requests</Text>
+            <Text style={styles.offlineTitle}>{t('driver.you_are_offline')}</Text>
+            <Text style={styles.offlineSub}>{isFrench ? 'Appuyez sur GO pour recevoir des courses' : 'Tap GO to start receiving requests'}</Text>
           </View>
         )}
 
@@ -103,7 +102,7 @@ export default function DashboardScreen({ isOnline, toggleOnline, onMenuPress, o
             onPress={toggleOnline}
             activeOpacity={0.9}
           >
-            <Text style={styles.goBtnText}>{isOnline ? 'STOP' : 'GO'}</Text>
+            <Text style={styles.goBtnText}>{isOnline ? (isFrench ? 'ARRÊT' : 'STOP') : 'GO'}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -113,17 +112,17 @@ export default function DashboardScreen({ isOnline, toggleOnline, onMenuPress, o
         <View style={[styles.nav, { paddingBottom: Platform.OS === 'ios' ? 30 : Math.max(insets.bottom, 24) + 12 }]}>
           <TouchableOpacity style={styles.navItem} onPress={onSafetyPress}>
             <ShieldAlert size={24} color={C.gray400} />
-            <Text style={styles.navLabel}>Safety</Text>
+            <Text style={styles.navLabel}>{isFrench ? 'Sécurité' : 'Safety'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.navItem} onPress={onSettingsPress}>
             <Settings size={24} color={C.gray400} />
-            <Text style={styles.navLabel}>Settings</Text>
+            <Text style={styles.navLabel}>{isFrench ? 'Paramètres' : 'Settings'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.navItem} onPress={onPromoPress}>
             <Zap size={24} color={C.gray400} />
-            <Text style={styles.navLabel}>Promo</Text>
+            <Text style={styles.navLabel}>{isFrench ? 'Promo' : 'Promo'}</Text>
           </TouchableOpacity>
         </View>
       </View>

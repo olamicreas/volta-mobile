@@ -7,6 +7,7 @@ import { BlurView } from 'expo-blur';
 import { Grid2x2, Search, Plane, Briefcase } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import C from '../constants/colors';
+import { useTranslation } from '../constants/translations';
 
 const { width } = Dimensions.get('window');
 
@@ -25,6 +26,7 @@ export default function HomeScreen({
   currentAddress
 }) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const searchBottomOffset = Platform.OS === 'ios'
     ? NAV_BAR_HEIGHT + 24
     : Math.max(insets.bottom, 24) + 12 + 48 + 16;
@@ -47,12 +49,12 @@ export default function HomeScreen({
     }
 
     Alert.alert(
-      'Add Office Address',
-      "You haven't saved your office address yet. Would you like to add it to your saved places now?",
+      t('home.add_office_title', 'Add Office Address'),
+      t('home.add_office_msg', "You haven't saved your office address yet. Would you like to add it to your saved places now?"),
       [
-        { text: 'Later', style: 'cancel' },
+        { text: t('common.later', 'Later'), style: 'cancel' },
         {
-          text: 'Add Office',
+          text: t('home.add_office_btn', 'Add Office'),
           onPress: () => {
             if (navigation) {
               navigation.navigate('SavedPlaces', { defaultName: 'Work' });
@@ -113,23 +115,25 @@ export default function HomeScreen({
                 <View style={styles.searchIconWrap}>
                   <Search size={20} color={C.lux900} strokeWidth={2.5} />
                 </View>
-                <Text style={styles.searchText}>Where to, {profile ? profile.first_name || 'User' : 'User'}?</Text>
+                <Text style={styles.searchText}>
+                  {t('home.where_to', { name: profile ? profile.first_name || 'User' : 'User' })}
+                </Text>
                 <View style={styles.nowBadge}>
-                  <Text style={styles.nowText}>Now</Text>
+                  <Text style={styles.nowText}>{t('common.now', 'Now')}</Text>
                 </View>
               </TouchableOpacity>
 
               <View style={styles.quickRow}>
                 <TouchableOpacity style={styles.quickBtn} activeOpacity={0.85} onPress={handleAirportPress}>
                   <Plane size={18} color={C.gold} strokeWidth={2} />
-                  <Text style={styles.quickText}>Airport</Text>
+                  <Text style={styles.quickText}>{t('home.airport', 'Airport')}</Text>
                 </TouchableOpacity>
 
                 <View style={styles.quickDivider} />
 
                 <TouchableOpacity style={styles.quickBtn} activeOpacity={0.85} onPress={handleOfficePress}>
                   <Briefcase size={18} color={C.gold} strokeWidth={2} />
-                  <Text style={styles.quickText}>Office</Text>
+                  <Text style={styles.quickText}>{t('home.office', 'Office')}</Text>
                 </TouchableOpacity>
               </View>
 

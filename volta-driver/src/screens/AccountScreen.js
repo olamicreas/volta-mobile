@@ -1,13 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { View, Text, DeviceEventEmitter, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
-import { User, CreditCard, Settings, HelpCircle, ChevronRight, ArrowLeft, LogOut, Shield, Zap , FileText } from 'lucide-react-native';
+import { View, Text, DeviceEventEmitter, TouchableOpacity, StyleSheet, ScrollView, Image, Alert } from 'react-native';
+import { User, CreditCard, Settings, HelpCircle, ChevronRight, ArrowLeft, LogOut, Shield, Zap , FileText, Globe } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import C from '../constants/colors';
+import { useTranslation, promptLanguageSelection } from '../constants/translations';
+import LanguageModal from '../components/modals/LanguageModal';
 
 export default function AccountScreen({ navigation, route }) {
+  const { t, isFrench } = useTranslation();
+  const [langModalVisible, setLangModalVisible] = useState(false);
+
   const onLogout = () => {
-    DeviceEventEmitter.emit('DO_LOGOUT');
+    Alert.alert(
+      t('driver.menu_logout'),
+      t('driver.logout_confirm'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('driver.menu_logout'),
+          style: 'destructive',
+          onPress: () => DeviceEventEmitter.emit('DO_LOGOUT')
+        }
+      ]
+    );
   };
   
   const [prof, setProf] = useState(null);
@@ -18,13 +34,13 @@ export default function AccountScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   
   const menuItems = [
-    { icon: User, label: 'Profile Details', route: 'ProfileDetail' },
-    { icon: FileText, label: 'Vehicle & Documents', route: 'VehicleProfile' },
-    { icon: CreditCard, label: 'Earnings & Wallet', route: 'Wallet' },
-    { icon: Zap, label: 'Opportunities', route: 'Promo' },
-    { icon: Shield, label: 'Safety', route: 'Safety' },
-    { icon: Settings, label: 'Preferences', route: 'Preferences' },
-    { icon: HelpCircle, label: 'Support', route: 'Support' },
+    { icon: User, label: t('driver.menu_account'), route: 'ProfileDetail' },
+    { icon: FileText, label: t('driver.menu_vehicle'), route: 'VehicleProfile' },
+    { icon: CreditCard, label: t('driver.menu_earnings'), route: 'Wallet' },
+    { icon: Zap, label: isFrench ? 'Opportunités' : 'Opportunities', route: 'Promo' },
+    { icon: Shield, label: t('driver.menu_safety'), route: 'Safety' },
+    { icon: Settings, label: t('driver.menu_preferences'), route: 'Preferences' },
+    { icon: HelpCircle, label: t('driver.menu_support'), route: 'Support' },
   ];
 
   return (
@@ -33,7 +49,7 @@ export default function AccountScreen({ navigation, route }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <ArrowLeft size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Driver Account</Text>
+        <Text style={styles.headerTitle}>{isFrench ? 'Compte Chauffeur' : 'Driver Account'}</Text>
         <View style={{width: 40}} />
       </View>
 
@@ -50,12 +66,26 @@ export default function AccountScreen({ navigation, route }) {
           )}
           <View style={{ flex: 1 }}>
             <Text style={styles.name}>{prof ? `${prof.first_name || ""} ${prof.last_name || ""}` : "..."}</Text>
-            <Text style={styles.tier}>{prof?.driver_category === 'COMPANY_CAR' ? 'Fleet Chauffeur' : 'Volta Chauffeur'}</Text>
+            <Text style={styles.tier}>{prof?.driver_category === 'COMPANY_CAR' ? (isFrench ? 'Chauffeur Flotte' : 'Fleet Chauffeur') : 'Volta Chauffeur'}</Text>
           </View>
           <ChevronRight size={24} color={C.gray400} />
         </TouchableOpacity>
 
         <View style={styles.menuGroup}>
+          {/* Language Selector Row */}
+          <TouchableOpacity style={styles.menuItem} onPress={() => setLangModalVisible(true)}>
+            <View style={[styles.iconWrap, { backgroundColor: '#1E293B' }]}>
+              <Globe size={20} color={C.brand || '#05A357'} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.menuLabel}>{t('driver.menu_language')}</Text>
+              <Text style={{ fontSize: 13, color: C.brand || '#05A357', fontWeight: '700', marginTop: 2 }}>
+                {isFrench ? '🇫🇷 Français (French)' : '🇬🇧 English (Anglais)'}
+              </Text>
+            </View>
+            <ChevronRight size={20} color={C.gray400} />
+          </TouchableOpacity>
+
           {menuItems.map((item, i) => (
             <TouchableOpacity key={i} style={styles.menuItem} onPress={() => navigation.navigate(item.route)}>
               <View style={styles.iconWrap}><item.icon size={20} color="#fff" /></View>
@@ -67,9 +97,14 @@ export default function AccountScreen({ navigation, route }) {
 
         <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
           <LogOut size={20} color="#EF4444" />
-          <Text style={styles.logoutText}>Go Offline & Log Out</Text>
+          <Text style={styles.logoutText}>{t('driver.menu_logout')}</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <LanguageModal
+        visible={langModalVisible}
+        onClose={() => setLangModalVisible(false)}
+      />
     </View>
   );
 }

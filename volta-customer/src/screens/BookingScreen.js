@@ -9,11 +9,13 @@ import { BlurView } from 'expo-blur';
 import { ArrowLeft, Users, ChevronRight } from 'lucide-react-native';
 import C from '../constants/colors';
 import api from '../services/api';
+import { useTranslation } from '../constants/translations';
 
 const { width, height } = Dimensions.get('window');
 
 // ── Slide-to-book button ──────────────────────────────────
 function SlideToBook({ vehicleName, onComplete }) {
+  const { t } = useTranslation();
   const pan = useRef(new Animated.Value(0)).current;
   const panValue = useRef(0);
   const onCompleteRef = useRef(onComplete);
@@ -90,7 +92,7 @@ function SlideToBook({ vehicleName, onComplete }) {
       onLayout={e => setTrackW(e.nativeEvent.layout.width)}
     >
       <Animated.Text style={[styles.slideLabel, { opacity: textOpac }]}>
-        Slide to Book · {vehicleName}
+        {t('booking.slide_to_book', { name: vehicleName })}
       </Animated.Text>
       <Animated.View
         style={[styles.slideThumb, { transform: [{ translateX }] }]}
@@ -102,15 +104,16 @@ function SlideToBook({ vehicleName, onComplete }) {
   );
 }
 
-// ── Vehicle card ─────────────────────────────────────────
+// ── Vehicle card base ─────────────────────────────────────
 const VEHICLES_BASE = [
-  { id: 'PassengerBike', label: 'Bike', seats: 1, base: 5000, perKm: 1500, perMin: 100, desc: 'Fast and cheap way through traffic.', dark: false, recommended: false },
-  { id: 'Regular', label: 'Regular', seats: 4, base: 10000, perKm: 2500, perMin: 200, desc: 'Everyday rides for up to 4 people.', dark: true, recommended: true },
-  { id: 'SUV', label: 'SUV', seats: 6, base: 15000, perKm: 3500, perMin: 300, desc: 'Extra space for luggage and groups.', dark: false, recommended: false },
-  { id: 'DeliveryBike', label: 'Delivery Bike', seats: 0, base: 5000, perKm: 1500, perMin: 100, desc: 'Quick package delivery across town.', dark: false, recommended: false },
+  { id: 'PassengerBike', labelKey: 'booking.bike', seats: 1, base: 5000, perKm: 1500, perMin: 100, descKey: 'booking.bike_desc', dark: false, recommended: false },
+  { id: 'Regular', labelKey: 'booking.regular', seats: 4, base: 10000, perKm: 2500, perMin: 200, descKey: 'booking.regular_desc', dark: true, recommended: true },
+  { id: 'SUV', labelKey: 'booking.suv', seats: 6, base: 15000, perKm: 3500, perMin: 300, descKey: 'booking.suv_desc', dark: false, recommended: false },
+  { id: 'DeliveryBike', labelKey: 'booking.delivery', seats: 0, base: 5000, perKm: 1500, perMin: 100, descKey: 'booking.delivery_desc', dark: false, recommended: false },
 ];
 
 export default function BookingScreen({ destination, onBack, onConfirm, onPaymentPress, routeInfo }) {
+  const { t, isFrench } = useTranslation();
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [paymentMethod, setPaymentMethod] = useState('FLUTTERWAVE'); // 'FLUTTERWAVE' | 'STRIPE' | 'CASH'
   const [selected, setSelected] = useState('Regular');
@@ -125,12 +128,11 @@ export default function BookingScreen({ destination, onBack, onConfirm, onPaymen
     ).start();
   }, [swipeAnim]);
 
-  
-  let routeMeta = "Calculating route...";
+  let routeMeta = t('booking.calculating');
   if (routeInfo && routeInfo.duration) {
     const mins = Math.max(1, Math.round(routeInfo.duration / 60));
     const km = (routeInfo.distance / 1000).toFixed(1);
-    routeMeta = `~${mins} min · ${km} km`;
+    routeMeta = `~${mins} ${t('booking.min')} · ${km} ${t('booking.km')}`;
   }
 
   const currency = paymentMethod === 'STRIPE' ? 'USD' : 'GNF';
@@ -150,7 +152,12 @@ export default function BookingScreen({ destination, onBack, onConfirm, onPaymen
     } else {
       price = Math.max(v.base * exchangeRate, parseFloat((price * exchangeRate).toFixed(2)));
     }
-    return { ...v, price };
+    return {
+      ...v,
+      label: t(v.labelKey),
+      desc: t(v.descKey),
+      price
+    };
   });
 
   const current = vehicles.find(v => v.id === selected) || vehicles[1];
@@ -175,7 +182,7 @@ export default function BookingScreen({ destination, onBack, onConfirm, onPaymen
 
         {/* Route info */}
         <View style={styles.routeSection}>
-          <Text style={styles.routeFrom}>Current Location  →</Text>
+          <Text style={styles.routeFrom}>{t('booking.route_from')}</Text>
           <Text style={styles.routeDest} numberOfLines={1} ellipsizeMode="tail">
             {destination || 'Destination'}
           </Text>
@@ -184,7 +191,7 @@ export default function BookingScreen({ destination, onBack, onConfirm, onPaymen
 
         {/* Vehicle cards — horizontal scroll */}
         <View style={{flexDirection: 'row', justifyContent: 'flex-end', paddingRight: 8, marginBottom: 8, alignItems: 'center'}}>
-          <Text style={{fontSize: 12, color: C.gray500, fontWeight: '600'}}>Swipe for more</Text>
+          <Text style={{fontSize: 12, color: C.gray500, fontWeight: '600'}}>{t('booking.swipe_more')}</Text>
           <Animated.View style={{transform: [{translateX: swipeAnim}]}}>
             <ChevronRight size={14} color={C.gray500} />
           </Animated.View>
@@ -193,8 +200,8 @@ export default function BookingScreen({ destination, onBack, onConfirm, onPaymen
         {!routeInfo ? (
           <View style={{ width: '100%', alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
             <ActivityIndicator size="large" color={C.lux900} style={{ marginBottom: 20, transform: [{ scale: 1.2 }] }} />
-            <Text style={{ color: C.lux900, fontSize: 18, fontWeight: '700', letterSpacing: -0.3, marginBottom: 6 }}>Calculating your route</Text>
-            <Text style={{ color: C.gray500, fontSize: 14, fontWeight: '500' }}>Fetching live dynamic pricing...</Text>
+            <Text style={{ color: C.lux900, fontSize: 18, fontWeight: '700', letterSpacing: -0.3, marginBottom: 6 }}>{t('booking.calculating')}</Text>
+            <Text style={{ color: C.gray500, fontSize: 14, fontWeight: '500' }}>{t('booking.fetching_pricing')}</Text>
           </View>
         ) : (
         <ScrollView
@@ -219,7 +226,7 @@ export default function BookingScreen({ destination, onBack, onConfirm, onPaymen
             >
               {v.recommended && (
                 <View style={styles.recBadge}>
-                  <Text style={styles.recText}>RECOMMENDED</Text>
+                  <Text style={styles.recText}>{isFrench ? 'RECOMMANDÉ' : 'RECOMMENDED'}</Text>
                 </View>
               )}
               <View style={styles.vTop}>
@@ -230,7 +237,7 @@ export default function BookingScreen({ destination, onBack, onConfirm, onPaymen
                   <View style={styles.seatsRow}>
                     <Users size={12} color={v.dark ? '#9CA3AF' : C.gray500} />
                     <Text style={[styles.seatsText, { color: v.dark ? '#9CA3AF' : C.gray500 }]}>
-                      {' '}{v.seats} Seats
+                      {' '}{v.seats} {isFrench ? 'Places' : 'Seats'}
                     </Text>
                   </View>
                 </View>
@@ -255,22 +262,22 @@ export default function BookingScreen({ destination, onBack, onConfirm, onPaymen
         <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
           <TouchableOpacity style={[styles.payRow, { flex: 1, marginBottom: 0 }]} onPress={() => {
             Alert.alert(
-              'Payment Method',
-              'Choose how you want to settle this trip at completion:',
+              t('booking.payment_method_title'),
+              t('booking.payment_method_msg'),
               [
                 { 
-                  text: 'Flutterwave (GNF Local)', 
+                  text: t('booking.pay_flutterwave'), 
                   onPress: () => setPaymentMethod('FLUTTERWAVE')
                 },
                 { 
-                  text: 'Stripe Card (USD)', 
+                  text: t('booking.pay_stripe'), 
                   onPress: () => setPaymentMethod('STRIPE')
                 },
                 { 
-                  text: 'Cash to Driver (GNF)', 
+                  text: t('booking.pay_cash'), 
                   onPress: () => setPaymentMethod('CASH')
                 },
-                { text: 'Cancel', style: 'cancel' }
+                { text: t('common.cancel'), style: 'cancel' }
               ]
             );
           }}>
@@ -285,7 +292,7 @@ export default function BookingScreen({ destination, onBack, onConfirm, onPaymen
               {paymentMethod === 'STRIPE' ? 'STRIPE (USD)' : paymentMethod === 'FLUTTERWAVE' ? 'FLUTTERWAVE (GNF)' : 'CASH (GNF)'}
             </Text>
           </View>
-          <Text style={styles.payLabel}>Payment</Text>
+          <Text style={styles.payLabel}>{t('booking.payment')}</Text>
           <ChevronRight size={18} color={C.gray400} />
         </TouchableOpacity>
 

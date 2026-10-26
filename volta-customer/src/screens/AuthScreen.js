@@ -5,11 +5,13 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Crown, ArrowRight, CheckCircle2 } from 'lucide-react-native';
+import { Crown, ArrowRight, CheckCircle2, Globe } from 'lucide-react-native';
 import { Image as RNImage } from 'react-native';
 import api from '../services/api';
 import C from '../constants/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation, promptLanguageSelection } from '../constants/translations';
+import LanguageModal from '../components/modals/LanguageModal';
 
 const { width, height } = Dimensions.get('window');
 
@@ -18,10 +20,12 @@ const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://163.245.215.14:80
 
 export default function AuthScreen({ onLogin }) {
   const insets = useSafeAreaInsets();
+  const { t, isFrench } = useTranslation();
   const opacity = useRef(new Animated.Value(1)).current;
   const scrollViewRef = useRef(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [langModalVisible, setLangModalVisible] = useState(false);
 
   React.useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -83,7 +87,7 @@ export default function AuthScreen({ onLogin }) {
 
   const submitProfile = async () => {
     if (!firstName) {
-      setError('First name is required');
+      setError(t('auth.invalid_code', 'First name is required'));
       return;
     }
     setLoading(true);
@@ -94,14 +98,16 @@ export default function AuthScreen({ onLogin }) {
         body: JSON.stringify({ first_name: firstName, last_name: lastName, email: email || null })
       });
       if (res.ok) {
-        Animated.timing(opacity, { toValue: 0, duration: 400, useNativeDriver: true }).start(async () => {
-          onLogin(await AsyncStorage.getItem('userToken'));
+        promptLanguageSelection(async () => {
+          Animated.timing(opacity, { toValue: 0, duration: 400, useNativeDriver: true }).start(async () => {
+            onLogin(await AsyncStorage.getItem('userToken'));
+          });
         });
       } else {
         setError('Failed to update profile');
       }
     } catch(e) {
-      setError('Network error');
+      setError(t('auth.network_error', 'Network error'));
     } finally {
       setLoading(false);
     }
@@ -110,7 +116,7 @@ export default function AuthScreen({ onLogin }) {
   const verifyOTP = async () => {
     Keyboard.dismiss();
     if (!otp || otp.length < 4) {
-      setError('Enter the 4-digit OTP');
+      setError(t('auth.invalid_code', 'Enter the 4-digit OTP'));
       return;
     }
     setLoading(true);
@@ -134,8 +140,11 @@ export default function AuthScreen({ onLogin }) {
                 setStep('PROFILE');
                 return;
             }
-            Animated.timing(opacity, { toValue: 0, duration: 400, useNativeDriver: true }).start(async () => {
-              onLogin(data.access_token);
+            // Prompt language selection on login
+            promptLanguageSelection(async () => {
+              Animated.timing(opacity, { toValue: 0, duration: 400, useNativeDriver: true }).start(async () => {
+                onLogin(data.access_token);
+              });
             });
         } catch(e) {
             setError('Failed to fetch profile. Is the server online?');
@@ -143,10 +152,10 @@ export default function AuthScreen({ onLogin }) {
             return;
         }
       } else {
-        setError(data.detail || 'Invalid OTP');
+        setError(data.detail || t('auth.invalid_code', 'Invalid OTP'));
       }
     } catch (e) {
-      setError('Network error. Check connection.');
+      setError(t('auth.network_error', 'Network error. Check connection.'));
     } finally {
       setLoading(false);
     }
@@ -154,6 +163,20 @@ export default function AuthScreen({ onLogin }) {
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, styles.container, { opacity }]}>
+      {/* Top Language Switcher Pill */}
+      <View style={[styles.topBar, { top: Math.max(16, insets.top + 8) }]} pointerEvents="box-none">
+        <TouchableOpacity
+          style={styles.langPill}
+          onPress={() => setLangModalVisible(true)}
+          activeOpacity={0.8}
+        >
+          <Globe size={15} color={C.gold} strokeWidth={2.5} />
+          <Text style={styles.langPillText}>
+            {isFrench ? 'Français (French)' : 'English (Anglais)'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.inner}
@@ -165,7 +188,7 @@ export default function AuthScreen({ onLogin }) {
           contentContainerStyle={[
             styles.scrollContent,
             {
-              paddingTop: Math.max(16, insets.top + 8),
+              paddingTop: Math.max(64, insets.top + 56),
               paddingBottom: Math.max(24, insets.bottom + 20) + (keyboardVisible ? (Platform.OS === 'android' ? 65 : 30) : 0),
               justifyContent: 'center',
             }
@@ -191,14 +214,16 @@ export default function AuthScreen({ onLogin }) {
             </View>
 
             <Text style={[styles.logo, keyboardVisible && { fontSize: 36, marginBottom: 4 }]}>Volta</Text>
-            <Text style={[styles.tagline, keyboardVisible && { fontSize: 15, marginBottom: 18 }]}>The luxury ride experience.</Text>
+            <Text style={[styles.tagline, keyboardVisible && { fontSize: 15, marginBottom: 18 }]}>
+              {t('auth.tagline', 'The luxury ride experience.')}
+            </Text>
 
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
             {step === 'PHONE' ? (
               <>
                 <View style={styles.inputCard}>
-                  <Text style={styles.inputLabel}>PHONE NUMBER</Text>
+                  <Text style={styles.inputLabel}>{isFrench ? 'NUMÉRO DE TÉLÉPHONE' : 'PHONE NUMBER'}</Text>
                   <TextInput
                     style={styles.input}
                     value={phone}
@@ -214,7 +239,7 @@ export default function AuthScreen({ onLogin }) {
                 <TouchableOpacity style={styles.btn} onPress={requestOTP} disabled={loading} activeOpacity={0.88}>
                   {loading ? <ActivityIndicator color={C.lux900} /> : (
                     <>
-                      <Text style={styles.btnText}>Continue</Text>
+                      <Text style={styles.btnText}>{t('auth.send_code', 'Continue')}</Text>
                       <ArrowRight color={C.lux900} size={20} strokeWidth={2.5} />
                     </>
                   )}
@@ -224,7 +249,7 @@ export default function AuthScreen({ onLogin }) {
             ) : step === 'PROFILE' ? (
               <>
                 <View style={styles.inputCard}>
-                  <Text style={styles.inputLabel}>FIRST NAME</Text>
+                  <Text style={styles.inputLabel}>{isFrench ? 'PRÉNOM' : 'FIRST NAME'}</Text>
                   <TextInput
                     style={styles.input}
                     value={firstName}
@@ -237,7 +262,7 @@ export default function AuthScreen({ onLogin }) {
                   />
                 </View>
                 <View style={styles.inputCard}>
-                  <Text style={styles.inputLabel}>LAST NAME</Text>
+                  <Text style={styles.inputLabel}>{isFrench ? 'NOM' : 'LAST NAME'}</Text>
                   <TextInput
                     style={styles.input}
                     value={lastName}
@@ -252,7 +277,7 @@ export default function AuthScreen({ onLogin }) {
 
                 
                 <View style={styles.inputCard}>
-                  <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
+                  <Text style={styles.inputLabel}>{isFrench ? 'ADRESSE E-MAIL' : 'EMAIL ADDRESS'}</Text>
                   <TextInput
                     style={styles.input}
                     value={email}
@@ -269,7 +294,7 @@ export default function AuthScreen({ onLogin }) {
                 <TouchableOpacity style={styles.btn} onPress={submitProfile} disabled={loading} activeOpacity={0.88}>
                   {loading ? <ActivityIndicator color={C.lux900} /> : (
                     <>
-                      <Text style={styles.btnText}>Complete Profile</Text>
+                      <Text style={styles.btnText}>{t('auth.save_profile', 'Complete Profile')}</Text>
                       <ArrowRight color={C.lux900} size={20} strokeWidth={2.5} />
                     </>
                   )}
@@ -279,7 +304,7 @@ export default function AuthScreen({ onLogin }) {
 
               <>
                 <View style={styles.inputCard}>
-                  <Text style={styles.inputLabel}>ENTER OTP CODE</Text>
+                  <Text style={styles.inputLabel}>{isFrench ? 'CODE DE VÉRIFICATION' : 'ENTER OTP CODE'}</Text>
                   <TextInput
                     style={styles.input}
                     value={otp}
@@ -302,7 +327,7 @@ export default function AuthScreen({ onLogin }) {
                 <TouchableOpacity style={styles.btn} onPress={verifyOTP} disabled={loading} activeOpacity={0.88}>
                   {loading ? <ActivityIndicator color={C.lux900} /> : (
                     <>
-                      <Text style={styles.btnText}>Verify & Login</Text>
+                      <Text style={styles.btnText}>{t('auth.verify_btn', 'Verify & Login')}</Text>
                       <CheckCircle2 color={C.lux900} size={20} strokeWidth={2.5} />
                     </>
                   )}
@@ -312,6 +337,11 @@ export default function AuthScreen({ onLogin }) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <LanguageModal
+        visible={langModalVisible}
+        onClose={() => setLangModalVisible(false)}
+      />
     </Animated.View>
   );
 }
@@ -328,6 +358,30 @@ const styles = StyleSheet.create({
     backgroundColor: C.lux900,
     zIndex: 999,
     elevation: 99
+  },
+  topBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    alignItems: 'flex-end',
+    paddingHorizontal: 20,
+  },
+  langPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(217, 119, 6, 0.45)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  langPillText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   inner: { flex: 1, width: '100%' },
   scrollContent: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 24 },

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Volta",
     "slug": "volta-customer",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -22,7 +22,7 @@
         "NSLocationWhenInUseUsageDescription": "Allow Volta to use your location to find nearby drivers.",
         "NSLocationAlwaysUsageDescription": "Allow Volta to use your location to find nearby drivers."
       },
-      "buildNumber": "71"
+      "buildNumber": "72"
     },
     "android": {
       "package": "com.volta.customer",
@@ -31,7 +31,7 @@
           "apiKey": "AIzaSyCnt02Uotcj2lXun70USSQ2hRsOcDXrZLY"
         }
       },
-      "versionCode": 69
+      "versionCode": 70
     },
     "web": {
       "favicon": "./assets/favicon.png"

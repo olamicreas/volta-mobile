@@ -10,10 +10,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../services/api';
 // Assuming you have your colors file
 import C from '../constants/colors';
+import { useTranslation } from '../constants/translations';
 
 export default function SearchScreen({ onClose, onSelectDestination, onPickupChange, pickup, setPickup, places, initialMode = 'DEFAULT', userCoords }) {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { t, isFrench } = useTranslation();
   const [dropoff, setDropoff] = React.useState('');
   const [suggestions, setSuggestions] = React.useState([]);
   const [focusedField, setFocusedField] = React.useState('dropoff');
@@ -187,12 +189,12 @@ export default function SearchScreen({ onClose, onSelectDestination, onPickupCha
       onSelectDestination(saved.name || displayName, targetLat, targetLng);
     } else {
       Alert.alert(
-        `Set ${displayName} Address`,
-        `You haven't set an address for ${displayName} yet. Would you like to add an actual address now?`,
+        t('search.set_address_title', { name: displayName }),
+        t('search.set_address_msg', { name: displayName }),
         [
-          { text: "Cancel", style: "cancel" },
+          { text: t('common.cancel'), style: "cancel" },
           {
-            text: "Add Address",
+            text: t('search.add_address_btn'),
             onPress: () => {
               handleClose();
               navigation.navigate('SavedPlaces', {
@@ -227,7 +229,7 @@ export default function SearchScreen({ onClose, onSelectDestination, onPickupCha
           <TouchableOpacity style={styles.backBtn} onPress={handleClose}>
             <ArrowLeft size={20} color={C.lux900} />
           </TouchableOpacity>
-          <Text style={styles.title}>{initialMode === 'AIRPORT' ? 'Select Airport' : 'Plan Route'}</Text>
+          <Text style={styles.title}>{initialMode === 'AIRPORT' ? t('search.select_airport') : t('search.plan_route')}</Text>
         </View>
 
         {/* Inputs with connecting line */}
@@ -242,17 +244,17 @@ export default function SearchScreen({ onClose, onSelectDestination, onPickupCha
             <TextInput
               style={[styles.inputField, styles.inputFieldGray]}
               value={pickup}
-              onChangeText={t => handleSearch(t, 'pickup')}
+              onChangeText={tText => handleSearch(tText, 'pickup')}
               onFocus={() => setFocusedField('pickup')}
-              placeholder="Current Location"
+              placeholder={t('search.pickup_placeholder')}
               placeholderTextColor={C.gray500}
             />
             <TextInput
               style={[styles.inputField, styles.inputFieldWhite, focusedField === 'dropoff' && styles.inputFocused]}
               value={dropoff}
-              onChangeText={t => handleSearch(t, 'dropoff')}
+              onChangeText={tText => handleSearch(tText, 'dropoff')}
               onFocus={() => setFocusedField('dropoff')}
-              placeholder={initialMode === 'AIRPORT' ? "Search airport name..." : "Enter destination"}
+              placeholder={initialMode === 'AIRPORT' ? t('search.search_airport_placeholder') : t('search.dropoff_placeholder')}
               placeholderTextColor={C.gray400}
               autoFocus
             />
@@ -270,17 +272,17 @@ export default function SearchScreen({ onClose, onSelectDestination, onPickupCha
           <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 48 }}>
             <ActivityIndicator size="large" color={C.gold || '#D97706'} />
             <Text style={{ marginTop: 14, fontSize: 15, fontWeight: '600', color: C.lux900 }}>
-              Finding nearby airports...
+              {t('search.finding_airports')}
             </Text>
             <Text style={{ marginTop: 6, fontSize: 13, color: C.gray500 }}>
-              Searching international & local terminals
+              {t('search.searching_terminals')}
             </Text>
           </View>
         ) : suggestions.length > 0 ? (
           <>
             {initialMode === 'AIRPORT' && (
               <View style={{ marginBottom: 12 }}>
-                <Text style={styles.sectionLabel}>Nearby Airports</Text>
+                <Text style={styles.sectionLabel}>{t('search.nearby_airports')}</Text>
               </View>
             )}
             {suggestions.map(item => (
@@ -303,59 +305,59 @@ export default function SearchScreen({ onClose, onSelectDestination, onPickupCha
           <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 48 }}>
             <Plane size={36} color={C.gray400} />
             <Text style={{ marginTop: 12, fontSize: 15, fontWeight: '600', color: C.lux900 }}>
-              No nearby airports detected
+              {t('search.no_airports')}
             </Text>
             <Text style={{ marginTop: 6, fontSize: 13, color: C.gray500, textAlign: 'center', paddingHorizontal: 20 }}>
-              Type your airport destination in the search box above.
+              {t('search.type_airport_hint')}
             </Text>
           </View>
         ) : (
           <>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <Text style={styles.sectionLabel}>Saved Places</Text>
+              <Text style={styles.sectionLabel}>{t('search.saved_places')}</Text>
               <TouchableOpacity onPress={() => { handleClose(); navigation.navigate('SavedPlaces'); }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: C.lux900 }}>Manage</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: C.lux900 }}>{t('common.manage')}</Text>
               </TouchableOpacity>
             </View>
 
             <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
               <TouchableOpacity
                 style={[styles.savedPill, findPlace('home')?.address ? styles.savedPillConfigured : null]}
-                onPress={() => handleSavedPlacePress('home', 'Home')}
+                onPress={() => handleSavedPlacePress('home', t('search.home'))}
                 activeOpacity={0.8}
               >
                 <View style={[styles.pillIconWrap, findPlace('home')?.address ? styles.pillIconWrapConfigured : null]}>
                   <Home size={16} color={findPlace('home')?.address ? '#05A357' : C.lux900} />
                 </View>
-                <Text style={styles.pillText}>Home</Text>
+                <Text style={styles.pillText}>{t('search.home')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[styles.savedPill, findPlace('work')?.address ? styles.savedPillConfigured : null]}
-                onPress={() => handleSavedPlacePress('work', 'Work')}
+                onPress={() => handleSavedPlacePress('work', t('search.work'))}
                 activeOpacity={0.8}
               >
                 <View style={[styles.pillIconWrap, findPlace('work')?.address ? styles.pillIconWrapConfigured : null]}>
                   <Briefcase size={16} color={findPlace('work')?.address ? '#05A357' : C.lux900} />
                 </View>
-                <Text style={styles.pillText}>Work</Text>
+                <Text style={styles.pillText}>{t('search.work')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[styles.savedPill, findPlace('mom')?.address ? styles.savedPillConfigured : null]}
-                onPress={() => handleSavedPlacePress('mom', "Mom's House")}
+                onPress={() => handleSavedPlacePress('mom', t('search.mom'))}
                 activeOpacity={0.8}
               >
                 <View style={[styles.pillIconWrap, findPlace('mom')?.address ? styles.pillIconWrapConfigured : null]}>
                   <Bookmark size={16} color={findPlace('mom')?.address ? '#05A357' : C.lux900} />
                 </View>
-                <Text style={styles.pillText}>Mom</Text>
+                <Text style={styles.pillText}>{t('search.mom')}</Text>
               </TouchableOpacity>
             </View>
 
             {placesList.length > 0 && (
               <>
-                <Text style={styles.sectionLabel}>Your Saved Locations</Text>
+                <Text style={styles.sectionLabel}>{t('places.title')}</Text>
                 {placesList.map((p, idx) => (
                   <TouchableOpacity key={p.id || idx} style={styles.placeCard} onPress={() => handleRecent(p)}>
                     <View style={styles.placeIconWrap}>
@@ -363,7 +365,7 @@ export default function SearchScreen({ onClose, onSelectDestination, onPickupCha
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.placeName}>{p.name}</Text>
-                      <Text style={styles.placeSub} numberOfLines={1}>{p.address || 'Saved location'}</Text>
+                      <Text style={styles.placeSub} numberOfLines={1}>{p.address || t('places.title')}</Text>
                     </View>
                   </TouchableOpacity>
                 ))}

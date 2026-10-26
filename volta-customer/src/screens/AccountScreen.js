@@ -1,13 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { View, Text, DeviceEventEmitter, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
-import { User, Clock, CreditCard, Settings, HelpCircle, ChevronRight, ArrowLeft, LogOut, Tag } from 'lucide-react-native';
+import { View, Text, DeviceEventEmitter, TouchableOpacity, StyleSheet, ScrollView, Image, Alert } from 'react-native';
+import { User, Clock, CreditCard, Settings, HelpCircle, ChevronRight, ArrowLeft, LogOut, Tag, Globe } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import C from '../constants/colors';
+import { useTranslation, promptLanguageSelection } from '../constants/translations';
+import LanguageModal from '../components/modals/LanguageModal';
 
 export default function AccountScreen({ navigation, profile }) {
+  const { t, isFrench, language } = useTranslation();
+  const [langModalVisible, setLangModalVisible] = useState(false);
+
   const onLogout = () => {
-    DeviceEventEmitter.emit('DO_LOGOUT');
+    Alert.alert(
+      t('account.logout'),
+      t('account.logout_confirm'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('account.logout'),
+          style: 'destructive',
+          onPress: () => DeviceEventEmitter.emit('DO_LOGOUT')
+        }
+      ]
+    );
   };
 
   const [prof, setProf] = useState(null);
@@ -18,12 +34,12 @@ export default function AccountScreen({ navigation, profile }) {
   const insets = useSafeAreaInsets();
   
   const menuItems = [
-    { icon: User, label: 'Profile Details', route: 'ProfileDetail' },
-    { icon: Clock, label: 'Ride History', route: 'RideHistory' },
-    { icon: CreditCard, label: 'Wallet & Payments', route: 'Wallet' },
-    { icon: Tag, label: 'Promotions', route: 'Promotions' },
-    { icon: Settings, label: 'Settings', route: 'Settings' },
-    { icon: HelpCircle, label: 'Support', route: 'Support' },
+    { icon: User, label: t('account.profile_details'), route: 'ProfileDetail' },
+    { icon: Clock, label: t('account.ride_history'), route: 'RideHistory' },
+    { icon: CreditCard, label: t('account.wallet_payments'), route: 'Wallet' },
+    { icon: Tag, label: t('account.promotions'), route: 'Promotions' },
+    { icon: Settings, label: t('account.settings'), route: 'Settings' },
+    { icon: HelpCircle, label: t('account.support'), route: 'Support' },
   ];
 
   return (
@@ -32,7 +48,7 @@ export default function AccountScreen({ navigation, profile }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <ArrowLeft size={24} color={C.lux900} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Account</Text>
+        <Text style={styles.headerTitle}>{t('account.title')}</Text>
         <View style={{width: 40}} />
       </View>
 
@@ -49,12 +65,26 @@ export default function AccountScreen({ navigation, profile }) {
           )}
           <View style={{ flex: 1 }}>
             <Text style={styles.name}>{prof ? `${prof.first_name || ""} ${prof.last_name || ""}` : "..."}</Text>
-            <Text style={styles.tier}>Volta Black Member</Text>
+            <Text style={styles.tier}>{t('account.tier')}</Text>
           </View>
           <ChevronRight size={24} color={C.gray400} />
         </TouchableOpacity>
 
         <View style={styles.menuGroup}>
+          {/* Language Selector Row */}
+          <TouchableOpacity style={styles.menuItem} onPress={() => setLangModalVisible(true)}>
+            <View style={[styles.iconWrap, { backgroundColor: '#FEF3C7' }]}>
+              <Globe size={20} color={C.gold || '#D97706'} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.menuLabel}>{t('account.language')}</Text>
+              <Text style={{ fontSize: 13, color: C.gold, fontWeight: '700', marginTop: 2 }}>
+                {isFrench ? '🇫🇷 Français (French)' : '🇬🇧 English (Anglais)'}
+              </Text>
+            </View>
+            <ChevronRight size={20} color={C.gray400} />
+          </TouchableOpacity>
+
           {menuItems.map((item, i) => (
             <TouchableOpacity key={i} style={styles.menuItem} onPress={() => navigation.navigate(item.route)}>
               <View style={styles.iconWrap}><item.icon size={20} color={C.lux900} /></View>
@@ -66,9 +96,14 @@ export default function AccountScreen({ navigation, profile }) {
 
         <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
           <LogOut size={20} color="#EF4444" />
-          <Text style={styles.logoutText}>Log Out</Text>
+          <Text style={styles.logoutText}>{t('account.logout')}</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <LanguageModal
+        visible={langModalVisible}
+        onClose={() => setLangModalVisible(false)}
+      />
     </View>
   );
 }

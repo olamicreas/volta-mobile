@@ -4,17 +4,21 @@ import { Image, Alert,
   Dimensions, Animated, KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView, Keyboard
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, CheckCircle2, ArrowRight, Camera, FileText, Car, Briefcase } from 'lucide-react-native';
+import { ArrowLeft, CheckCircle2, ArrowRight, Camera, FileText, Car, Briefcase, Globe } from 'lucide-react-native';
 import C from '../constants/colors';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../services/api';
+import { useTranslation, promptLanguageSelection } from '../constants/translations';
+import LanguageModal from '../components/modals/LanguageModal';
 
 const { width, height } = Dimensions.get('window');
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://163.245.215.14:8000';
 
 export default function AuthScreen({ onLogin }) {
   const insets = useSafeAreaInsets();
+  const { t, isFrench } = useTranslation();
+  const [langModalVisible, setLangModalVisible] = useState(false);
   const opacity = useRef(new Animated.Value(1)).current;
   const scrollViewRef = useRef(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -149,8 +153,10 @@ export default function AuthScreen({ onLogin }) {
                 setStep('PROFILE');
                 return;
             }
-            Animated.timing(opacity, { toValue: 0, duration: 400, useNativeDriver: true }).start(async () => {
-              onLogin(data.access_token);
+            promptLanguageSelection(async () => {
+              Animated.timing(opacity, { toValue: 0, duration: 400, useNativeDriver: true }).start(async () => {
+                onLogin(data.access_token);
+              });
             });
         } catch(e) {
             setError('Failed to fetch profile. Is the server online?');
@@ -206,8 +212,10 @@ export default function AuthScreen({ onLogin }) {
           await api.uploadDocuments(photoUri, licenseUri, carteGrisUri);
         }
         
-        Animated.timing(opacity, { toValue: 0, duration: 400, useNativeDriver: true }).start(async () => {
-          onLogin(await AsyncStorage.getItem('userToken'));
+        promptLanguageSelection(async () => {
+          Animated.timing(opacity, { toValue: 0, duration: 400, useNativeDriver: true }).start(async () => {
+            onLogin(await AsyncStorage.getItem('userToken'));
+          });
         });
     } catch(e) {
         setError(e.message || 'Failed to complete setup');
@@ -218,6 +226,20 @@ export default function AuthScreen({ onLogin }) {
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, styles.container, { opacity }]}>
+      {/* Top Language Switcher Pill */}
+      <View style={[styles.topBar, { top: Math.max(16, insets.top + 8) }]} pointerEvents="box-none">
+        <TouchableOpacity
+          style={styles.langPill}
+          onPress={() => setLangModalVisible(true)}
+          activeOpacity={0.8}
+        >
+          <Globe size={16} color={C.gold || '#D4AF37'} />
+          <Text style={styles.langPillText}>
+            {isFrench ? '🇫🇷 Français (French)' : '🇬🇧 English (Anglais)'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
         style={styles.inner}
@@ -229,7 +251,7 @@ export default function AuthScreen({ onLogin }) {
           contentContainerStyle={[
             styles.scrollContent,
             {
-              paddingTop: Math.max(16, insets.top + 8),
+              paddingTop: Math.max(16, insets.top + 8) + 40,
               paddingBottom: Math.max(24, insets.bottom + 20) + (keyboardVisible ? (Platform.OS === 'android' ? 65 : 30) : 0),
               justifyContent: 'center',
             }
@@ -262,10 +284,10 @@ export default function AuthScreen({ onLogin }) {
              />
           </View>
           <Text style={[styles.titleLeft, keyboardVisible && { fontSize: 24, marginTop: 6, marginBottom: 4 }]}>
-            {step === 'CHOICE' ? 'Welcome to Volta' : step === 'OWNERSHIP' ? 'Vehicle Setup' : step === 'VEHICLE' ? 'Final Details' : isApplying ? 'Apply to Drive' : 'Driver Login'}
+            {step === 'CHOICE' ? t('auth.welcome') : step === 'OWNERSHIP' ? t('auth.vehicle_setup') : step === 'VEHICLE' ? t('auth.final_details') : isApplying ? t('auth.apply_to_drive') : t('auth.driver_login')}
           </Text>
           <Text style={[styles.subLeft, keyboardVisible && { marginBottom: 18, fontSize: 13 }]}>
-            {step === 'CHOICE' ? 'Become a driver or login' : step === 'OWNERSHIP' ? 'How will you drive with us?' : step === 'VEHICLE' ? 'Upload required documents' : isApplying ? 'Join the Volta network.' : 'Enter your phone number to go online.'}
+            {step === 'CHOICE' ? t('auth.become_or_login') : step === 'OWNERSHIP' ? t('auth.how_drive') : step === 'VEHICLE' ? t('auth.upload_docs') : isApplying ? t('auth.join_network_sub') : t('auth.enter_phone_sub')}
           </Text>
           
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -273,10 +295,10 @@ export default function AuthScreen({ onLogin }) {
           {step === 'CHOICE' ? (
             <>
               <TouchableOpacity style={styles.btnPrimary} onPress={() => { setIsApplying(false); setStep('PHONE'); }}>
-                <Text style={styles.btnPrimaryText}>Login</Text>
+                <Text style={styles.btnPrimaryText}>{t('auth.login_btn')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.btnPrimary, { backgroundColor: '#374151', marginTop: 16 }]} onPress={() => { setIsApplying(true); setStep('PHONE'); }}>
-                <Text style={[styles.btnPrimaryText, { color: '#fff' }]}>Apply to Drive</Text>
+                <Text style={[styles.btnPrimaryText, { color: '#fff' }]}>{t('auth.apply_to_drive')}</Text>
               </TouchableOpacity>
             </>
           ) : step === 'PHONE' ? (
@@ -291,7 +313,7 @@ export default function AuthScreen({ onLogin }) {
                 keyboardType="phone-pad" 
               />
               <TouchableOpacity style={styles.btnPrimary} onPress={requestOTP} disabled={loading}>
-                {loading ? <ActivityIndicator color="#000" /> : <Text style={styles.btnPrimaryText}>Continue</Text>}
+                {loading ? <ActivityIndicator color="#000" /> : <Text style={styles.btnPrimaryText}>{t('auth.send_code')}</Text>}
               </TouchableOpacity>
             </>
           
@@ -459,11 +481,39 @@ export default function AuthScreen({ onLogin }) {
         </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <LanguageModal
+        visible={langModalVisible}
+        onClose={() => setLangModalVisible(false)}
+      />
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
+  topBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  langPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+  },
+  langPillText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
   container: {
     position: 'absolute',
     top: 0,

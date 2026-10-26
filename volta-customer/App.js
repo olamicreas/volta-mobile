@@ -20,6 +20,7 @@ import { StripeProvider } from '@stripe/stripe-react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useSafeAreaInsets, SafeAreaProvider } from 'react-native-safe-area-context';
+import { useTranslation } from './src/constants/translations';
 import SavedPlacesScreen from './src/screens/SavedPlacesScreen';
 import AddPaymentScreen from './src/screens/AddPaymentScreen';
 import PromotionsScreen from './src/screens/PromotionsScreen';
@@ -59,6 +60,7 @@ let isProfileAlertShowingGlobal = false;
 
 function MainApp({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const [view, setView] = useState('AUTH');
   const [location, setLocation] = useState({ latitude: START_LAT, longitude: START_LNG });
@@ -115,11 +117,11 @@ function MainApp({ navigation }) {
         isProfileAlertShowingGlobal = true;
 
         Alert.alert(
-          "Complete Your Profile",
-          "Welcome to Volta! Your profile is not yet completed. Please complete your profile details to enjoy the full experience.",
+          t('auth.profile_title'),
+          t('auth.profile_sub'),
           [
             {
-              text: "Complete Profile",
+              text: t('auth.profile_title'),
               onPress: () => {
                 isProfileAlertShowingGlobal = false;
                 if (profileAlertTimerGlobal) {
@@ -130,7 +132,7 @@ function MainApp({ navigation }) {
               }
             },
             {
-              text: "Later",
+              text: t('common.later'),
               style: "cancel",
               onPress: () => {
                 isProfileAlertShowingGlobal = false;
@@ -635,22 +637,22 @@ function MainApp({ navigation }) {
                   color={view === 'HOME' ? C.gold : C.gray400}
                   fill={view === 'HOME' ? C.gold : 'none'}
                 />
-                <Text style={[styles.navLabel, view === 'HOME' && styles.navActive]}>Home</Text>
+                <Text style={[styles.navLabel, view === 'HOME' && styles.navActive]}>{t('nav.home')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.navItem} onPress={() => setView('RIDES')}>
                 <Clock size={24} color={view === 'RIDES' ? C.gold : C.gray400} />
-                <Text style={[styles.navLabel, view === 'RIDES' && styles.navActive]}>Rides</Text>
+                <Text style={[styles.navLabel, view === 'RIDES' && styles.navActive]}>{t('nav.rides')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.navItem} onPress={() => setView('WALLET')}>
                 <CreditCard size={24} color={view === 'WALLET' ? C.gold : C.gray400} />
-                <Text style={[styles.navLabel, view === 'WALLET' && styles.navActive]}>Wallet</Text>
+                <Text style={[styles.navLabel, view === 'WALLET' && styles.navActive]}>{t('nav.wallet')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.navItem} onPress={() => setView('ACCOUNT')}>
                 <User size={24} color={view === 'ACCOUNT' ? C.gold : C.gray400} />
-                <Text style={[styles.navLabel, view === 'ACCOUNT' && styles.navActive]}>Account</Text>
+                <Text style={[styles.navLabel, view === 'ACCOUNT' && styles.navActive]}>{t('nav.account')}</Text>
               </TouchableOpacity>
             </View>
           </View>
